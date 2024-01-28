@@ -1,4 +1,4 @@
-♯ utf_ken_all.zipユーティリティー
+# utf_ken_all.zipユーティリティー
 
 ```xml
 <dependency>
