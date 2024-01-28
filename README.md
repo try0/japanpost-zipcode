@@ -1,5 +1,13 @@
 ♯ utf_ken_all.zipユーティリティー
 
+```xml
+<dependency>
+  <groupId>jp.try0.zipcode</groupId>
+  <artifactId>japanpost-zipcode-core</artifactId>
+  <version>0.0.1</version>
+</dependency>
+```
+
 ```java
 ZipcodeCSV csv = ZipcodeCSV.getOrDownload();
 Iterable<ZipcodeCSVRow> rows = csv.getRows();
