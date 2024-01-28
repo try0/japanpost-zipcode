@@ -1,5 +1,6 @@
 # utf_ken_all.zipユーティリティー
 
+[https://www.post.japanpost.jp/zipcode/download.html](https://www.post.japanpost.jp/zipcode/download.html)   
 [https://www.post.japanpost.jp/zipcode/dl/utf-zip.html](https://www.post.japanpost.jp/zipcode/dl/utf-zip.html)
 
 ```xml
@@ -15,7 +16,8 @@ ZipcodeCSV csv = ZipcodeCSV.getOrDownload();
 Iterable<ZipcodeCSVRow> rows = csv.getRows();
 ```
 
-[住所の郵便番号（1レコード1行、UTF-8形式）（CSV形式）](https://www.post.japanpost.jp/zipcode/download.html)  
+ 
+utf_ken_all.zip  
  ↓ Download  
 java.io.tmpdir  
  ↓ CSV読み込み  
