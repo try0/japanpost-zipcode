@@ -1,5 +1,7 @@
 # utf_ken_all.zipユーティリティー
 
+[https://www.post.japanpost.jp/zipcode/dl/utf-zip.html](https://www.post.japanpost.jp/zipcode/dl/utf-zip.html)
+
 ```xml
 <dependency>
   <groupId>jp.try0.zipcode</groupId>
