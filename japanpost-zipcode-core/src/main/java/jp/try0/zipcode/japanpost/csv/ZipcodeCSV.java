@@ -45,8 +45,25 @@ public class ZipcodeCSV implements Serializable {
 		return new ZipcodeCSV(ZipcodeFiles.unzip(zipfile));
 	}
 
+	/**
+	 * ローカルのファイルを削除します。
+	 * 
+	 * @throws IOException
+	 */
+	public static void deleteFiles() throws IOException {
+		ZipcodeFiles.clean();
+	}
+
+	/**
+	 * CSVファイル
+	 */
 	File csvFile;
 
+	/**
+	 * コンストラクター
+	 * 
+	 * @param csvFile
+	 */
 	protected ZipcodeCSV(File csvFile) {
 		this.csvFile = csvFile;
 	}
@@ -65,7 +82,7 @@ public class ZipcodeCSV implements Serializable {
 	/**
 	 * CSV行データを取得します。
 	 * 
-	 * @return　行Iterable
+	 * @return 行Iterable
 	 * @throws IOException
 	 */
 	public Iterable<ZipcodeCSVRow> getRows() throws IOException {

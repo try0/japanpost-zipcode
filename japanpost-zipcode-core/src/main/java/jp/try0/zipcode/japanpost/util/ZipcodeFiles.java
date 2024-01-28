@@ -109,4 +109,16 @@ public final class ZipcodeFiles {
 		}
 	}
 
+	/**
+	 * 一時ディレクトリーを削除します。
+	 * 
+	 * @throws IOException
+	 */
+	public static void clean() throws IOException {
+		File libTmpDir = ZipcodeFiles.TMP_DIR_PATH.toFile();
+		if (libTmpDir.exists()) {
+			Files.delete(ZipcodeFiles.TMP_DIR_PATH);
+		}
+	}
+
 }
