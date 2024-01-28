@@ -2,6 +2,7 @@ package jp.try0.zipcode.japanpost.csv;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
@@ -18,7 +19,7 @@ import jp.try0.zipcode.japanpost.util.ZipcodeFiles;
 /**
  * utf_ken_all.zip 郵便番号データ（1レコード1行、UTF-8形式）のユーティリティー
  */
-public class ZipcodeCSV {
+public class ZipcodeCSV implements Serializable {
 
 	/**
 	 * utf_ken_all.csvを取得します。<br>
@@ -26,32 +27,48 @@ public class ZipcodeCSV {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File getOrDownload() throws IOException {
+	public static ZipcodeCSV getOrDownload() throws IOException {
 		// 一時ディレクトリーに保持している場合はそちらを使用する。
-		File file = ZipcodeCSVDownloader.TMP_FILE_PATH.toFile();
-		if (file.exists()) {
-			FileTime fileTime = Files.getLastModifiedTime(ZipcodeCSVDownloader.TMP_FILE_PATH);
+		File csvFile = ZipcodeFiles.CSV_PATH.toFile();
+		if (csvFile.exists()) {
+			FileTime fileTime = Files.getLastModifiedTime(ZipcodeFiles.CSV_PATH);
 			Instant instant = fileTime.toInstant();
 			LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
 			int cacheDays = ZipcodeCSVProperties.get().getCacheDays();
 			if (localDateTime.isAfter(LocalDateTime.now().minusDays(cacheDays))) {
-				return file;
+				return new ZipcodeCSV(csvFile);
 			}
 		}
 
-		ZipcodeCSVDownloader downloader = ZipcodeCSVDownloader.getInstance();
+		ZipcodeCSVDownloader downloader = ZipcodeCSVDownloader.get();
 		var zipfile = downloader.download();
-		return ZipcodeFiles.unzip(zipfile);
+		return new ZipcodeCSV(ZipcodeFiles.unzip(zipfile));
+	}
+
+	File csvFile;
+
+	protected ZipcodeCSV(File csvFile) {
+		this.csvFile = csvFile;
+	}
+
+	/**
+	 * ローカルのutf_ken_all.csvを削除します。<br>
+	 * 
+	 * @throws IOException
+	 */
+	public void delete() throws IOException {
+		if (csvFile.exists()) {
+			Files.delete(ZipcodeFiles.CSV_PATH);
+		}
 	}
 
 	/**
 	 * CSV行データを取得します。
 	 * 
-	 * @return
+	 * @return　行Iterable
 	 * @throws IOException
 	 */
-	public static Iterable<ZipcodeCSVRow> getRows() throws IOException {
-		File csvFile = getOrDownload();
+	public Iterable<ZipcodeCSVRow> getRows() throws IOException {
 		ZipcodeCSVParser parser = new ZipcodeCSVParser(csvFile);
 		return parser.parse();
 	}
@@ -59,12 +76,21 @@ public class ZipcodeCSV {
 	/**
 	 * CSV行データを取得します。
 	 * 
-	 * @return
+	 * @return 行リスト
 	 * @throws IOException
 	 */
-	public static List<ZipcodeCSVRow> getRowsAsList() throws IOException {
+	public List<ZipcodeCSVRow> getRowsAsList() throws IOException {
 		List<ZipcodeCSVRow> rows = new ArrayList<>();
 		getRows().forEach(rows::add);
 		return rows;
+	}
+
+	/**
+	 * ファイルを取得します。
+	 * 
+	 * @return CSVファイル
+	 */
+	public File getFile() {
+		return csvFile;
 	}
 }

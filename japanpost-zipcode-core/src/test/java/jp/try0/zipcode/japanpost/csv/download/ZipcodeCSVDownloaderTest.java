@@ -10,13 +10,13 @@ import jp.try0.zipcode.japanpost.csv.parser.ZipcodeCSVParser;
 
 public class ZipcodeCSVDownloaderTest {
 
-//	@Test
+	@Test
 	public void downloadTest() {
 
 		try {
 
-			var file = ZipcodeCSVDownloader.getInstance().download();
-			ZipcodeCSVParser parser = new ZipcodeCSVParser(file);
+			var zipFile = ZipcodeCSVDownloader.get().download();
+			ZipcodeCSVParser parser = new ZipcodeCSVParser(zipFile);
 			for (ZipcodeCSVRow row : parser.parse()) {
 				row.debugPrint();
 				System.out.print("\n");

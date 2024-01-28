@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Path;
 
 import jp.try0.zipcode.japanpost.csv.ZipcodeCSVException;
 import jp.try0.zipcode.japanpost.csv.ZipcodeCSVProperties;
@@ -24,12 +23,9 @@ public class ZipcodeCSVDownloader {
 		private static final ZipcodeCSVDownloader INSTANCE = new ZipcodeCSVDownloader();
 	}
 
-	public static ZipcodeCSVDownloader getInstance() {
+	public static ZipcodeCSVDownloader get() {
 		return Holder.INSTANCE;
 	}
-
-	public static final Path TMP_FILE_PATH = Path.of(System.getProperty("java.io.tmpdir"), "jp.try0.zipcode",
-			"utf_ken_all.zip");
 
 	/**
 	 * utf_ken_all.zipをダウンロードします。
@@ -52,7 +48,7 @@ public class ZipcodeCSVDownloader {
 	 */
 	private File download(String url) throws MalformedURLException, IOException {
 
-		File file = TMP_FILE_PATH.toFile();
+		File file = ZipcodeFiles.ZIP_PATH.toFile();
 		file.getParentFile().mkdirs();
 		file.createNewFile();
 

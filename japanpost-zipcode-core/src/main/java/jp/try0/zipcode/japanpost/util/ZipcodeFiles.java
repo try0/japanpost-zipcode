@@ -6,6 +6,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
@@ -15,6 +18,11 @@ import java.util.zip.ZipInputStream;
  */
 public final class ZipcodeFiles {
 
+	public static final Path TMP_DIR_PATH = Path.of(System.getProperty("java.io.tmpdir"), "jp.try0.zipcode");
+	public static final Path WORK_PATH = Path.of(TMP_DIR_PATH.toString(), "work");
+	public static final Path ZIP_PATH = Path.of(TMP_DIR_PATH.toString(), "utf_ken_all.zip");
+	public static final Path CSV_PATH = Path.of(TMP_DIR_PATH.toString(), "utf_ken_all.csv");
+
 	private ZipcodeFiles() {
 		throw new IllegalStateException();
 	}
@@ -22,7 +30,7 @@ public final class ZipcodeFiles {
 	public static final int BUFFER = 4096;
 
 	/**
-	 * Zipファイルを解凍してファイルを１つ取得します。
+	 * Zipファイルを解凍してutf_ken_all.csvを取得します。
 	 *
 	 * @param file
 	 * @return
@@ -30,30 +38,34 @@ public final class ZipcodeFiles {
 	 */
 	public static final File unzip(File file) throws java.io.IOException {
 
+		WORK_PATH.toFile().mkdirs();
+
 		try (FileInputStream fis = new FileInputStream(file);
 				ZipInputStream zis = new ZipInputStream(new BufferedInputStream(fis));) {
 			ZipEntry entry;
 			while ((entry = zis.getNextEntry()) != null) {
 				int count;
 				byte data[] = new byte[BUFFER];
-				File entryFile = new File(System.getProperty("java.io.tmpdir") + "/" + entry.getName());
+				File entryFile = Path.of(WORK_PATH.toString(), entry.getName()).toFile();
 				if (entry.isDirectory()) {
 					entryFile.mkdir();
 					continue;
 				}
 
-				FileOutputStream fos = new FileOutputStream(entryFile);
-				BufferedOutputStream dest = new BufferedOutputStream(fos, BUFFER);
-				while ((count = zis.read(data, 0, BUFFER)) != -1) {
-					dest.write(data, 0, count);
+				try (FileOutputStream fos = new FileOutputStream(entryFile);
+						BufferedOutputStream dest = new BufferedOutputStream(fos, BUFFER);) {
+					while ((count = zis.read(data, 0, BUFFER)) != -1) {
+						dest.write(data, 0, count);
+					}
+					dest.flush();
 				}
-				dest.flush();
-				dest.close();
 				zis.closeEntry();
 
 				String entryName = entry.getName();
-
-				return entryFile;
+				if (entryName.equals("utf_ken_all.csv")) {
+					var csvPath = Files.copy(entryFile.toPath(), CSV_PATH, StandardCopyOption.REPLACE_EXISTING);
+					return csvPath.toFile();
+				}
 			}
 		}
 
