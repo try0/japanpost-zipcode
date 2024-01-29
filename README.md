@@ -22,3 +22,12 @@ utf_ken_all.zip
 java.io.tmpdir  
  ↓ CSV読み込み  
 Iterable\<ZipcodeCSVRow\>  
+
+
+
+```java
+ZipcodeCSVDownloader downloader = ZipcodeCSVDownloader.get();
+File zipFile = downloader.download();
+ZipcodeCSVParser parser = new ZipcodeCSVParser(zipFile);
+Iterable<ZipcodeCSVRow> rows = parser.parse();
+```
