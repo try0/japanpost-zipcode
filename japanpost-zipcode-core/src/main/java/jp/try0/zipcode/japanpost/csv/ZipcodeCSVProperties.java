@@ -8,9 +8,9 @@ import java.net.HttpURLConnection;
  */
 public class ZipcodeCSVProperties {
 	/**
-	 * https://www.post.japanpost.jp/zipcode/dl/utf/zip/utf_ken_all.zip
+	 * https://www.post.japanpost.jp/service/search/zipcode/download/utf/zip/utf_ken_all.zip
 	 */
-	public static final String DOWNLOAD_URL = "https://www.post.japanpost.jp/zipcode/dl/utf/zip/utf_ken_all.zip";
+	public static final String DOWNLOAD_URL = "https://www.post.japanpost.jp/service/search/zipcode/download/utf/zip/utf_ken_all.zip";
 	public static final String CSV_ENCODING = "UTF-8";
 	public static final String CSV_CACHE_DAYS = "10";
 	public static final String CONNECTION_TIMEOUT = "10000";
