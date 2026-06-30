@@ -5,9 +5,13 @@
 	<parent>
 		<groupId>jp.try0.zipcode</groupId>
 		<artifactId>japanpost-zipcode-parent</artifactId>
-		<version>0.0.1</version>
+		<version>0.0.2</version>
 	</parent>
 	<artifactId>japanpost-zipcode-core</artifactId>
+
+	<name>japanpost-zipcode-core</name>
+	<description>zipcode csv utility</description>
+	<url>https://github.com/try0/japanpost-zipcode</url>
 
 
 	<dependencies>
