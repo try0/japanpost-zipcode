@@ -59,6 +59,26 @@ public class ZipcodeCSVPropertiesTest {
 		assertTrue(ZipcodeCSVProperties.get().isFallbackToCache());
 	}
 
+	@Test
+	public void invalidSystemPropertyReportsItsKey() {
+		props.set(SystemProperties.CACHE_DAYS, "abc");
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> ZipcodeCSVProperties.get().getCacheDays());
+
+		assertTrue(e.getMessage().contains(SystemProperties.CACHE_DAYS), e.getMessage());
+	}
+
+	@Test
+	public void negativeSystemPropertyIsRejected() {
+		props.set(SystemProperties.READ_TIMEOUT, "-1");
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> ZipcodeCSVProperties.get().getReadTimeout());
+
+		assertTrue(e.getMessage().contains(SystemProperties.READ_TIMEOUT), e.getMessage());
+	}
+
 	// ---- Javaコードでの設定 ----
 
 	@Test

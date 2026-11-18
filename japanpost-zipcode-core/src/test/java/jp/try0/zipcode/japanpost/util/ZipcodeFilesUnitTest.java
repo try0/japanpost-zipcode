@@ -6,10 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -132,6 +135,22 @@ public final class ZipcodeFilesUnitTest {
 		assertEquals(ZipcodeFiles.getCSVPath().toFile(), csv);
 		assertArrayEquals(TestHttpServer.sampleCsv(), Files.readAllBytes(csv.toPath()));
 		assertEquals(List.of("utf_ken_all.csv"), fileNames(cacheDir), "作業用のファイルが残っている");
+	}
+
+	/**
+	 * Linux・macOSで、キャッシュファイルを通常のファイルと同じ権限（umaskに従う）で作成すること<br>
+	 * （{@link Files#createTempFile}は所有者のみ読み書きできる権限で作成するため、別のOSユーザーから読めなくなる）
+	 */
+	@Test
+	public void writtenFileHasSamePermissionsAsOrdinaryFile() throws Exception {
+		assumeTrue(FileSystems.getDefault().supportedFileAttributeViews().contains("posix"), "POSIXのファイルシステムのみ");
+		Files.createDirectories(cacheDir);
+		Path ordinary = Files.createFile(cacheDir.resolve("ordinary.txt"));
+		Path target = cacheDir.resolve("utf_ken_all.csv");
+
+		ZipcodeFiles.write(new ByteArrayInputStream("a,b,c".getBytes(StandardCharsets.UTF_8)), target, -1);
+
+		assertEquals(Files.getPosixFilePermissions(ordinary), Files.getPosixFilePermissions(target));
 	}
 
 	@Test

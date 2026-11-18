@@ -34,8 +34,6 @@ public final class ZipcodeFiles {
 	private static final String TEMP_FILE_PREFIX = "utf_ken_all";
 	private static final String TEMP_FILE_SUFFIX = ".tmp";
 
-	public static final int BUFFER = 4096;
-
 	private ZipcodeFiles() {
 		throw new IllegalStateException();
 	}
@@ -139,6 +137,8 @@ public final class ZipcodeFiles {
 		Files.createDirectories(dir);
 		Path temp = Files.createTempFile(dir, TEMP_FILE_PREFIX, TEMP_FILE_SUFFIX);
 		try {
+			// createTempFileはLinux・macOSで所有者のみ読み書きできる権限（rw-------）で作成するため、
+			// REPLACE_EXISTINGで作り直して通常の権限（umaskに従う）にする
 			long length = Files.copy(in, temp, StandardCopyOption.REPLACE_EXISTING);
 			if (expectedLength >= 0 && length != expectedLength) {
 				throw new IOException("途中で終了しました（" + length + "/" + expectedLength + "バイト）: " + target);
@@ -165,13 +165,19 @@ public final class ZipcodeFiles {
 	 * @param file CSVファイル、またはutf_ken_all.csvを含むZipファイル
 	 * @return CSVの入力ストリーム
 	 * @throws FileNotFoundException Zipファイルにutf_ken_all.csvが含まれていない場合
+	 * @throws ZipException          Zipファイルが壊れている場合（途中までしかない場合など）
 	 * @throws IOException           ファイルを開けない場合
 	 */
 	public static InputStream openCSV(File file) throws IOException {
 		ZipFile zip;
 		try {
 			zip = new ZipFile(file);
-		} catch (ZipException notZip) {
+		} catch (ZipException e) {
+			if (startsWithZipSignature(file)) {
+				ZipException broken = new ZipException("Zipファイルが壊れています: " + file);
+				broken.initCause(e);
+				throw broken;
+			}
 			return Files.newInputStream(file.toPath());
 		}
 
@@ -193,6 +199,17 @@ public final class ZipcodeFiles {
 		} catch (IOException | RuntimeException e) {
 			zip.close();
 			throw e;
+		}
+	}
+
+	/**
+	 * ファイルの先頭がZipファイルのシグネチャー（PK\3\4、空のZipはPK\5\6）か判定します。
+	 */
+	private static boolean startsWithZipSignature(File file) throws IOException {
+		try (InputStream in = Files.newInputStream(file.toPath())) {
+			byte[] head = in.readNBytes(4);
+			return head.length == 4 && head[0] == 'P' && head[1] == 'K'
+					&& ((head[2] == 3 && head[3] == 4) || (head[2] == 5 && head[3] == 6));
 		}
 	}
 

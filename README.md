@@ -105,6 +105,7 @@ parser.forEachRow(row -> {
 | `ZipcodeFiles.CSV_PATH` | `ZipcodeFiles.getCSVPath()` |
 | `ZipcodeFiles.WORK_PATH` | なし（作業ディレクトリーを使用しなくなりました） |
 | `ZipcodeFiles.unzipIfNeeded(File)` | `ZipcodeFiles.openCSV(File)`（解凍せずに読み込む） |
+| `ZipcodeFiles.BUFFER` | なし（未使用のため削除） |
 
 その他の変更
 
@@ -113,6 +114,17 @@ parser.forEachRow(row -> {
 - `ZipcodeCSV.deleteFiles()`（`ZipcodeFiles.clean()`）は、保存先ディレクトリーを丸ごと削除せず、ライブラリーが作成したファイルのみ削除します。
 - ダウンロード・解凍は一時ファイルに書き込んでから置き換えるため、失敗しても前回のファイルは壊れません。受信が途中で切れた場合は例外をスローします。
 - Zipファイルにutf_ken_all.csvが含まれていない場合、`getOrDownload()`は`ZipcodeCSVException`をスローします。
-- `ZipcodeCSVParser`はZipファイルを解凍せずに読み込みます。これまではキャッシュのCSVを上書きしていました。
+- `ZipcodeCSVParser`はZipファイルを解凍せずに読み込みます。これまではキャッシュのCSVを上書きしていました。壊れたZipファイル（途中までしかないものなど）は`ZipException`をスローします。
+- `ZipcodeCSVRow`に`equals`・`hashCode`・`toString`を実装しました。`equals`は各列の値を比較し、行番号（`getRowNumber()`）は比較しません。
+- `ZipcodeCSVRow`に、「1」は該当・「0」は該当せずの表示をbooleanで返すメソッドを追加しました。既存の`get～`（int）はそのまま使用できます。
+
+  | 追加（boolean） | 既存（int） |
+  |---|---|
+  | `hasMultiZipcodeArea()` | `getHasMultiZipcodeArea()` |
+  | `isPerKoaza()` | `getIsPerKoaza()` |
+  | `hasChoume()` | `getHasChoume()` |
+  | `hasMultiAreaZipcode()` | `getHasMultiAreaZipcode()` |
+- システムプロパティーに不正な値（数値以外、負の値）を指定した場合、プロパティー名を含む`IllegalArgumentException`をスローします。
+- Javaモジュールシステム用に、モジュール名`jp.try0.zipcode.japanpost`（`Automatic-Module-Name`）を設定しました。
 
 依存するcommons-csvを1.14.1に更新したため、commons-ioとcommons-codecが推移的依存関係として追加されます。

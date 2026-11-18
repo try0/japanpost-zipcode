@@ -64,7 +64,7 @@ public class ZipcodeCSVParser implements ZipcodeCSVRowSource {
 	 * @param properties 設定（文字コードを使用します）
 	 */
 	public ZipcodeCSVParser(File file, ZipcodeCSVProperties properties) {
-		this.file = file;
+		this.file = Objects.requireNonNull(file, "file");
 		this.properties = Objects.requireNonNull(properties, "properties");
 	}
 

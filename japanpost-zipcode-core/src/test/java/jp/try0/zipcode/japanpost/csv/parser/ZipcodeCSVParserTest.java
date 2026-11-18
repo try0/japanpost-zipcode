@@ -16,9 +16,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipException;
 
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -116,6 +118,10 @@ public class ZipcodeCSVParserTest {
 				() -> assertEquals(0, row.getIsPerKoaza()),
 				() -> assertEquals(1, row.getHasChoume()),
 				() -> assertEquals(0, row.getHasMultiAreaZipcode()),
+				() -> assertTrue(row.hasMultiZipcodeArea()),
+				() -> assertFalse(row.isPerKoaza()),
+				() -> assertTrue(row.hasChoume()),
+				() -> assertFalse(row.hasMultiAreaZipcode()),
 				() -> assertEquals(1, row.getUpdateState()),
 				() -> assertEquals(2, row.getUpdateReason()));
 	}
@@ -329,6 +335,24 @@ public class ZipcodeCSVParserTest {
 		new ZipcodeCSVParser(zip.toFile()).withRows(rows -> rows.findFirst());
 
 		Files.delete(zip);
+	}
+
+	/**
+	 * 途中までしかないZipファイルを、CSVとして読み込まないこと
+	 */
+	@Test
+	public void truncatedZipFailsAsZipError() throws Exception {
+		Path zip = sampleZip("utf_ken_all.csv");
+		byte[] bytes = Files.readAllBytes(zip);
+		Files.write(zip, Arrays.copyOf(bytes, bytes.length / 2));
+		ZipcodeCSVParser parser = new ZipcodeCSVParser(zip.toFile());
+
+		assertThrows(ZipException.class, parser::getRowsAsList);
+	}
+
+	@Test
+	public void constructorRejectsNullFile() {
+		assertThrows(NullPointerException.class, () -> new ZipcodeCSVParser(null));
 	}
 
 	@Test

@@ -94,6 +94,30 @@ public final class ZipcodeCSVProperties implements Serializable {
 	}
 
 	/**
+	 * 0以上の整数のシステムプロパティーを取得します。
+	 *
+	 * @throws IllegalArgumentException 値が0以上の整数でない場合（メッセージにシステムプロパティー名を含みます）
+	 */
+	private static int getNonNegativeInt(String key, String defaultValue) {
+		String value = getOr(key, defaultValue);
+		int parsed;
+		try {
+			parsed = Integer.parseInt(value.trim());
+		} catch (NumberFormatException e) {
+			throw invalidSystemProperty(key, value, e);
+		}
+		if (parsed < 0) {
+			throw invalidSystemProperty(key, value, null);
+		}
+		return parsed;
+	}
+
+	private static IllegalArgumentException invalidSystemProperty(String key, String value, Throwable cause) {
+		return new IllegalArgumentException(
+				"システムプロパティー " + SYSTEM_PROPERTY_PREFIX + key + " には0以上の整数を指定してください: " + value, cause);
+	}
+
+	/**
 	 * ダウンロードURL（{@link #DOWNLOAD_URL}）を取得します。<br>
 	 * システムプロパティー：jp.try0.zipcode.url.utf_ken_all
 	 *
@@ -120,7 +144,7 @@ public final class ZipcodeCSVProperties implements Serializable {
 	 * @return キャッシュを使用する日数
 	 */
 	public int getCacheDays() {
-		return cacheDays != null ? cacheDays : Integer.parseInt(getOr("csv.cache_days", CSV_CACHE_DAYS));
+		return cacheDays != null ? cacheDays : getNonNegativeInt("csv.cache_days", CSV_CACHE_DAYS);
 	}
 
 	/**
@@ -157,7 +181,7 @@ public final class ZipcodeCSVProperties implements Serializable {
 	 */
 	public int getConnectionTimeout() {
 		return connectionTimeout != null ? connectionTimeout
-				: Integer.parseInt(getOr("http.connection_timeout", CONNECTION_TIMEOUT));
+				: getNonNegativeInt("http.connection_timeout", CONNECTION_TIMEOUT);
 	}
 
 	/**
@@ -167,7 +191,7 @@ public final class ZipcodeCSVProperties implements Serializable {
 	 * @return タイムアウトミリ秒
 	 */
 	public int getReadTimeout() {
-		return readTimeout != null ? readTimeout : Integer.parseInt(getOr("http.read_timeout", READ_TIMEOUT));
+		return readTimeout != null ? readTimeout : getNonNegativeInt("http.read_timeout", READ_TIMEOUT);
 	}
 
 	/**

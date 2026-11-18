@@ -3,6 +3,7 @@ package jp.try0.zipcode.japanpost.csv.data;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Objects;
 
 import org.apache.commons.csv.CSVRecord;
 
@@ -293,6 +294,15 @@ public class ZipcodeCSVRow implements Serializable {
 	}
 
 	/**
+	 * 一町域が二以上の郵便番号で表されるか判定します。（{@link #getHasMultiZipcodeArea()}が「1」）
+	 *
+	 * @return 該当する場合はtrue
+	 */
+	public boolean hasMultiZipcodeArea() {
+		return hasMultiZipcodeArea == 1;
+	}
+
+	/**
 	 * 一町域が二以上の郵便番号で表される場合の表示 （注3） （「1」は該当、「0」は該当せず）をセットします。
 	 * 
 	 * @param hasMultiZipcodeArea 一町域が二以上の郵便番号で表される場合の表示 （注3） （「1」は該当、「0」は該当せず）
@@ -308,6 +318,15 @@ public class ZipcodeCSVRow implements Serializable {
 	 */
 	public int getIsPerKoaza() {
 		return isPerKoaza;
+	}
+
+	/**
+	 * 小字毎に番地が起番されている町域か判定します。（{@link #getIsPerKoaza()}が「1」）
+	 *
+	 * @return 該当する場合はtrue
+	 */
+	public boolean isPerKoaza() {
+		return isPerKoaza == 1;
 	}
 
 	/**
@@ -329,6 +348,15 @@ public class ZipcodeCSVRow implements Serializable {
 	}
 
 	/**
+	 * 丁目を有する町域か判定します。（{@link #getHasChoume()}が「1」）
+	 *
+	 * @return 該当する場合はtrue
+	 */
+	public boolean hasChoume() {
+		return hasChoume == 1;
+	}
+
+	/**
 	 * 丁目を有する町域の場合の表示 （「1」は該当、「0」は該当せず）をセットします。
 	 * 
 	 * @param hasChoume 丁目を有する町域の場合の表示 （「1」は該当、「0」は該当せず）
@@ -344,6 +372,15 @@ public class ZipcodeCSVRow implements Serializable {
 	 */
 	public int getHasMultiAreaZipcode() {
 		return hasMultiAreaZipcode;
+	}
+
+	/**
+	 * 一つの郵便番号で二以上の町域を表すか判定します。（{@link #getHasMultiAreaZipcode()}が「1」）
+	 *
+	 * @return 該当する場合はtrue
+	 */
+	public boolean hasMultiAreaZipcode() {
+		return hasMultiAreaZipcode == 1;
 	}
 
 	/**
@@ -391,6 +428,67 @@ public class ZipcodeCSVRow implements Serializable {
 	 */
 	public void setUpdateReason(int updateReason) {
 		this.updateReason = updateReason;
+	}
+
+	/**
+	 * 各列の値が等しいか比較します。<br>
+	 * 行番号（{@link #getRowNumber()}）はファイル内の位置のため、比較に含めません。
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null || getClass() != obj.getClass()) {
+			return false;
+		}
+		ZipcodeCSVRow other = (ZipcodeCSVRow) obj;
+		return Objects.equals(localGovernmentCode, other.localGovernmentCode)
+				&& Objects.equals(legacyZipcode, other.legacyZipcode)
+				&& Objects.equals(zipcode, other.zipcode)
+				&& Objects.equals(prefectureNameKana, other.prefectureNameKana)
+				&& Objects.equals(cityNameKana, other.cityNameKana)
+				&& Objects.equals(areaNameKana, other.areaNameKana)
+				&& Objects.equals(prefectureName, other.prefectureName)
+				&& Objects.equals(cityName, other.cityName)
+				&& Objects.equals(areaName, other.areaName)
+				&& hasMultiZipcodeArea == other.hasMultiZipcodeArea
+				&& isPerKoaza == other.isPerKoaza
+				&& hasChoume == other.hasChoume
+				&& hasMultiAreaZipcode == other.hasMultiAreaZipcode
+				&& updateState == other.updateState
+				&& updateReason == other.updateReason;
+	}
+
+	/**
+	 * 各列の値からハッシュコードを計算します。行番号は含めません。
+	 */
+	@Override
+	public int hashCode() {
+		return Objects.hash(localGovernmentCode, legacyZipcode, zipcode, prefectureNameKana, cityNameKana,
+				areaNameKana, prefectureName, cityName, areaName, hasMultiZipcodeArea, isPerKoaza, hasChoume,
+				hasMultiAreaZipcode, updateState, updateReason);
+	}
+
+	@Override
+	public String toString() {
+		return "ZipcodeCSVRow{rowNumber=" + rowNumber
+				+ ", localGovernmentCode=" + localGovernmentCode
+				+ ", legacyZipcode=" + legacyZipcode
+				+ ", zipcode=" + zipcode
+				+ ", prefectureNameKana=" + prefectureNameKana
+				+ ", cityNameKana=" + cityNameKana
+				+ ", areaNameKana=" + areaNameKana
+				+ ", prefectureName=" + prefectureName
+				+ ", cityName=" + cityName
+				+ ", areaName=" + areaName
+				+ ", hasMultiZipcodeArea=" + hasMultiZipcodeArea
+				+ ", isPerKoaza=" + isPerKoaza
+				+ ", hasChoume=" + hasChoume
+				+ ", hasMultiAreaZipcode=" + hasMultiAreaZipcode
+				+ ", updateState=" + updateState
+				+ ", updateReason=" + updateReason
+				+ "}";
 	}
 
 	public void debugPrint() {
