@@ -89,13 +89,6 @@ public final class ZipcodeFilesUnitTest {
 	}
 
 	@Test
-	public void unzipIfNeededReturnsSameFileForNonZip() throws IOException {
-		File csv = Files.writeString(tempDir.resolve("sample.csv"), "a,b,c").toFile();
-
-		assertEquals(csv, ZipcodeFiles.unzipIfNeeded(csv));
-	}
-
-	@Test
 	public void pathsFollowConfiguredCacheDir() {
 		assertEquals(cacheDir, ZipcodeFiles.getCacheDir());
 		assertEquals(cacheDir.resolve("utf_ken_all.zip"), ZipcodeFiles.getZipPath());

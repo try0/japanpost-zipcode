@@ -69,7 +69,7 @@ Linuxでは`java.io.tmpdir`（`/tmp`）を全ユーザーで共有するため�
 
 ## Zipファイルを直接読み込む
 
-ダウンロードしたZipファイルを直接読み込む場合も、同じメソッドを使用できます。
+ダウンロードしたZipファイルを直接読み込む場合も、同じメソッドを使用できます。Zipファイルは解凍せずに読み込むため、キャッシュディレクトリーなどにファイルを書き出しません。
 
 ```java
 ZipcodeCSVDownloader downloader = ZipcodeCSVDownloader.get();
@@ -92,6 +92,7 @@ parser.forEachRow(row -> {
 | `ZipcodeFiles.ZIP_PATH` | `ZipcodeFiles.getZipPath()` |
 | `ZipcodeFiles.CSV_PATH` | `ZipcodeFiles.getCSVPath()` |
 | `ZipcodeFiles.WORK_PATH` | なし（作業ディレクトリーを使用しなくなりました） |
+| `ZipcodeFiles.unzipIfNeeded(File)` | `ZipcodeFiles.openCSV(File)`（解凍せずに読み込む） |
 
 その他の変更
 
@@ -99,5 +100,6 @@ parser.forEachRow(row -> {
 - `ZipcodeCSV.deleteFiles()`（`ZipcodeFiles.clean()`）は、保存先ディレクトリーを丸ごと削除せず、ライブラリーが作成したファイルのみ削除します。
 - ダウンロード・解凍は一時ファイルに書き込んでから置き換えるため、失敗しても前回のファイルは壊れません。受信が途中で切れた場合は例外をスローします。
 - Zipファイルにutf_ken_all.csvが含まれていない場合、`getOrDownload()`は`ZipcodeCSVException`をスローします。
+- `ZipcodeCSVParser`はZipファイルを解凍せずに読み込みます。これまではキャッシュのCSVを上書きしていました。
 
 依存するcommons-csvを1.14.1に更新したため、commons-ioとcommons-codecが推移的依存関係として追加されます。

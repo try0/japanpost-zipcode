@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -26,6 +27,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 import jp.try0.zipcode.japanpost.csv.data.ZipcodeCSVColumnType;
 import jp.try0.zipcode.japanpost.csv.data.ZipcodeCSVRow;
+import jp.try0.zipcode.japanpost.testutil.SystemProperties;
+import jp.try0.zipcode.japanpost.testutil.TestHttpServer;
 
 /**
  * テスト用CSV（src/test/resources/utf_ken_all_sample.csv）を使ったオフラインのパーサーテスト
@@ -271,6 +274,53 @@ public class ZipcodeCSVParserTest {
 		ZipcodeCSVParser parser = new ZipcodeCSVParser(tempDir.resolve("missing.csv").toFile());
 
 		assertThrows(IOException.class, parser::openRowStream);
+	}
+
+	// ---- Zipファイル ----
+
+	private Path sampleZip(String entryName) throws Exception {
+		Path zip = tempDir.resolve("utf_ken_all.zip");
+		Files.write(zip, TestHttpServer.zip(entryName, TestHttpServer.sampleCsv()));
+		return zip;
+	}
+
+	@Test
+	public void readsRowsDirectlyFromZip() throws Exception {
+		List<String> zipcodes = new ZipcodeCSVParser(sampleZip("utf_ken_all.csv").toFile())
+				.withRows(rows -> rows.map(ZipcodeCSVRow::getZipcode).collect(Collectors.toList()));
+
+		assertEquals(List.of("0600000", "1000001", "5400002"), zipcodes);
+	}
+
+	@Test
+	public void readingZipWritesNothingToCacheDir() throws Exception {
+		Path cacheDir = tempDir.resolve("cache");
+		Path zip = sampleZip("utf_ken_all.csv");
+
+		try (SystemProperties props = new SystemProperties().set(SystemProperties.CACHE_DIR, cacheDir.toString())) {
+			new ZipcodeCSVParser(zip.toFile()).getRowsAsList();
+		}
+
+		assertFalse(Files.exists(cacheDir), "キャッシュディレクトリーに書き込まれた");
+	}
+
+	/**
+	 * Windowsでは開いたままのZipファイルを削除できないため、Zipファイルを閉じたことを検証できます。
+	 */
+	@Test
+	public void zipFileIsClosedWhenStoppingEarly() throws Exception {
+		Path zip = sampleZip("utf_ken_all.csv");
+
+		new ZipcodeCSVParser(zip.toFile()).withRows(rows -> rows.findFirst());
+
+		Files.delete(zip);
+	}
+
+	@Test
+	public void zipWithoutCSVFailsWhenRead() throws Exception {
+		ZipcodeCSVParser parser = new ZipcodeCSVParser(sampleZip("other.txt").toFile());
+
+		assertThrows(FileNotFoundException.class, parser::getRowsAsList);
 	}
 
 	// ---- 低レベルAPI ----

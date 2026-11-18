@@ -2,6 +2,8 @@ package jp.try0.zipcode.japanpost.util;
 
 import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -11,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
@@ -122,26 +125,42 @@ public final class ZipcodeFiles {
 	}
 
 	/**
-	 * Zipファイルの場合、解凍してファイルを１つ取得します。
+	 * CSVを読み込む入力ストリームを開きます。<br>
+	 * Zipファイルの場合は、解凍せずにZip内のutf_ken_all.csvを直接読み込みます。
+	 * ストリームのクローズ時にZipファイルも閉じます。
 	 *
-	 * @param file
-	 * @return
+	 * @param file CSVファイル、またはutf_ken_all.csvを含むZipファイル
+	 * @return CSVの入力ストリーム
+	 * @throws FileNotFoundException Zipファイルにutf_ken_all.csvが含まれていない場合
+	 * @throws IOException           ファイルを開けない場合
 	 */
-	public static File unzipIfNeeded(File file) {
-		if (ZipcodeFiles.isZipFile(file)) {
-			try {
-				File csvFile = ZipcodeFiles.unzip(file);
-				if (csvFile == null) {
-					throw new IllegalArgumentException("ZipファイルからCSVを抽出できませんでした。");
-				}
-
-				return csvFile;
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
+	public static InputStream openCSV(File file) throws IOException {
+		ZipFile zip;
+		try {
+			zip = new ZipFile(file);
+		} catch (ZipException notZip) {
+			return Files.newInputStream(file.toPath());
 		}
 
-		return file;
+		try {
+			ZipEntry entry = zip.getEntry(CSV_FILE_NAME);
+			if (entry == null || entry.isDirectory()) {
+				throw new FileNotFoundException("Zipファイルに" + CSV_FILE_NAME + "が含まれていません: " + file);
+			}
+			return new FilterInputStream(zip.getInputStream(entry)) {
+				@Override
+				public void close() throws IOException {
+					try {
+						super.close();
+					} finally {
+						zip.close();
+					}
+				}
+			};
+		} catch (IOException | RuntimeException e) {
+			zip.close();
+			throw e;
+		}
 	}
 
 	/**

@@ -3,10 +3,10 @@ package jp.try0.zipcode.japanpost.csv.parser;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -27,30 +27,46 @@ import jp.try0.zipcode.japanpost.util.ZipcodeFiles;
 
 /**
  * パーサー<br>
+ * CSVファイル、またはutf_ken_all.csvを含むZipファイルを読み込みます。
+ * Zipファイルは解凍せずに直接読み込むため、ファイルを書き出しません。<br>
  * 行データの読み込み方法は{@link ZipcodeCSVRowSource}を参照してください。
  *
  * @see https://www.post.japanpost.jp/zipcode/dl/readme.html
  */
 public class ZipcodeCSVParser implements ZipcodeCSVRowSource {
 
-	File csvFile;
+	/**
+	 * CSVファイル、またはZipファイル
+	 */
+	File file;
 
+	/**
+	 * コンストラクター<br>
+	 * ファイルは読み込み時に開きます。
+	 *
+	 * @param file CSVファイル、またはutf_ken_all.csvを含むZipファイル
+	 */
 	public ZipcodeCSVParser(File file) {
-		csvFile = ZipcodeFiles.unzipIfNeeded(file);
+		this.file = file;
 	}
 
 	/**
 	 * {@link CSVParser}を生成します。<br>
 	 * 文字コードは{@link ZipcodeCSVProperties#getCSVEncoding()}を使用します。
 	 *
-	 * @param csvFile
-	 * @return
+	 * @param file CSVファイル、またはZipファイル
+	 * @return CSVParser
 	 * @throws IOException
 	 */
-	protected CSVParser newCSVParser(File csvFile) throws IOException {
+	protected CSVParser newCSVParser(File file) throws IOException {
 		Charset charset = Charset.forName(ZipcodeCSVProperties.get().getCSVEncoding());
-		InputStreamReader reader = new InputStreamReader(Files.newInputStream(csvFile.toPath()), charset);
-		return CSVFormat.DEFAULT.parse(reader);
+		InputStream in = ZipcodeFiles.openCSV(file);
+		try {
+			return CSVFormat.DEFAULT.parse(new InputStreamReader(in, charset));
+		} catch (IOException | RuntimeException e) {
+			in.close();
+			throw e;
+		}
 	}
 
 	/**
@@ -69,7 +85,7 @@ public class ZipcodeCSVParser implements ZipcodeCSVRowSource {
 	 * @throws IOException
 	 */
 	public CSVParser parseCSVRecord() throws IOException {
-		return newCSVParser(csvFile);
+		return newCSVParser(file);
 	}
 
 	/**
@@ -78,11 +94,11 @@ public class ZipcodeCSVParser implements ZipcodeCSVRowSource {
 	 */
 	@Override
 	public Stream<ZipcodeCSVRow> openRowStream() throws IOException {
-		if (!csvFile.isFile()) {
-			throw new FileNotFoundException(csvFile.getPath());
+		if (!file.isFile()) {
+			throw new FileNotFoundException(file.getPath());
 		}
 
-		RowIterator it = new RowIterator(newCSVParser(csvFile));
+		RowIterator it = new RowIterator(newCSVParser(file));
 		return StreamSupport
 				.stream(Spliterators.spliteratorUnknownSize(it, Spliterator.ORDERED | Spliterator.NONNULL), false)
 				.onClose(it::close);
