@@ -34,18 +34,26 @@ public class ZipcodeCSVDownloader {
 	 * @throws IOException         通信・書き込みに失敗した場合、または受信が途中で終了した場合
 	 */
 	public File download() throws MalformedURLException, IOException {
-		return download(ZipcodeCSVProperties.get().getDownloadUrl());
+		return download(ZipcodeCSVProperties.get());
 	}
 
-	private File download(String url) throws MalformedURLException, IOException {
+	/**
+	 * 設定に従って、utf_ken_all.zipをキャッシュディレクトリーにダウンロードします。<br>
+	 * 失敗した場合は途中までのファイルを残さず、前回ダウンロードしたファイルも変更しません。
+	 *
+	 * @param properties 設定
+	 * @return ダウンロードしたZipファイル
+	 * @throws ZipcodeCSVException HTTPステータスが200以外の場合
+	 * @throws IOException         通信・書き込みに失敗した場合、または受信が途中で終了した場合
+	 */
+	public File download(ZipcodeCSVProperties properties) throws MalformedURLException, IOException {
+		String url = properties.getDownloadUrl();
 		HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
 		try {
 			conn.setAllowUserInteraction(false);
 			conn.setInstanceFollowRedirects(true);
-
-			var props = ZipcodeCSVProperties.get();
-			conn.setConnectTimeout(props.getConnectionTimeout());
-			conn.setReadTimeout(props.getReadTimeout());
+			conn.setConnectTimeout(properties.getConnectionTimeout());
+			conn.setReadTimeout(properties.getReadTimeout());
 			conn.setRequestMethod("GET");
 
 			int responseCode = conn.getResponseCode();
@@ -53,7 +61,7 @@ public class ZipcodeCSVDownloader {
 				throw new ZipcodeCSVException("HTTP status " + responseCode + " " + url);
 			}
 
-			Path zipPath = ZipcodeFiles.getZipPath();
+			Path zipPath = ZipcodeFiles.getZipPath(properties);
 			try (InputStream in = conn.getInputStream()) {
 				// HttpURLConnectionは受信が途中で切れても例外にならないため、Content-Lengthと照合する
 				ZipcodeFiles.write(in, zipPath, conn.getContentLengthLong());
@@ -65,20 +73,29 @@ public class ZipcodeCSVDownloader {
 	}
 
 	/**
-	 * 指定ファイルが、日本郵便のWebサーバーに配置されているか判定します。<br>
+	 * ダウンロードURLにファイルが配置されているか判定します。<br>
 	 * リンク切れチェック用
 	 *
-	 * @param fileType
-	 * @return
+	 * @return 配置されている場合はtrue
 	 */
 	public boolean existsDownloadUrl() {
+		return existsDownloadUrl(ZipcodeCSVProperties.get());
+	}
+
+	/**
+	 * 設定のダウンロードURLにファイルが配置されているか判定します。<br>
+	 * リンク切れチェック用
+	 *
+	 * @param properties 設定
+	 * @return 配置されている場合はtrue
+	 */
+	public boolean existsDownloadUrl(ZipcodeCSVProperties properties) {
 		HttpURLConnection conn = null;
 		try {
-			var props = ZipcodeCSVProperties.get();
-			conn = (HttpURLConnection) new URL(props.getDownloadUrl()).openConnection();
+			conn = (HttpURLConnection) new URL(properties.getDownloadUrl()).openConnection();
 			conn.setInstanceFollowRedirects(true);
-			conn.setConnectTimeout(props.getConnectionTimeout());
-			conn.setReadTimeout(props.getReadTimeout());
+			conn.setConnectTimeout(properties.getConnectionTimeout());
+			conn.setReadTimeout(properties.getReadTimeout());
 			conn.setRequestMethod("HEAD");
 			return (conn.getResponseCode() == HttpURLConnection.HTTP_OK);
 		} catch (Exception ignore) {

@@ -4,8 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -123,6 +128,98 @@ public class ZipcodeCSVUnitTest {
 		server.respond(200, TestHttpServer.zip("other.txt", "dummy".getBytes(StandardCharsets.UTF_8)));
 
 		assertThrows(ZipcodeCSVException.class, ZipcodeCSV::getOrDownload);
+	}
+
+	// ---- 設定オブジェクト（システムプロパティーには使われない値を設定しておく） ----
+
+	private static final Charset SJIS = Charset.forName("Windows-31J");
+
+	@Test
+	public void getOrDownloadUsesGivenProperties() throws Exception {
+		Path cacheDir = tempDir.resolve("code-cache");
+		props.set(SystemProperties.DOWNLOAD_URL, "http://127.0.0.1:1/unused.zip");
+		server.respond(200, TestHttpServer.zip("utf_ken_all.csv", TestHttpServer.sampleCsv()));
+		ZipcodeCSVProperties properties = ZipcodeCSVProperties.builder()
+				.downloadUrl(server.url())
+				.cacheDir(cacheDir)
+				.build();
+
+		ZipcodeCSV csv = ZipcodeCSV.getOrDownload(properties);
+
+		assertEquals(cacheDir.resolve("utf_ken_all.csv").toFile(), csv.getFile());
+		assertEquals(3, csv.getRowsAsList().size());
+	}
+
+	@Test
+	public void getOrDownloadUsesFallbackOfGivenProperties() throws Exception {
+		Path cacheDir = tempDir.resolve("code-cache");
+		Files.createDirectories(cacheDir);
+		Path csvPath = Files.write(cacheDir.resolve("utf_ken_all.csv"), TestHttpServer.sampleCsv());
+		Files.setLastModifiedTime(csvPath, FileTime.from(Instant.now().minus(Duration.ofDays(30))));
+		server.respond(500, new byte[0]);
+		ZipcodeCSVProperties properties = ZipcodeCSVProperties.builder()
+				.cacheDir(cacheDir)
+				.fallbackToCache(true)
+				.build();
+
+		ZipcodeCSV csv = ZipcodeCSV.getOrDownload(properties);
+
+		assertEquals(csvPath.toFile(), csv.getFile());
+		assertEquals(1, server.requestCount(), "ダウンロードを試行していない");
+	}
+
+	@Test
+	public void rowsAreReadWithEncodingOfGivenProperties() throws Exception {
+		ZipcodeCSV csv = ZipcodeCSV.getOrDownload(sjisCacheProperties());
+
+		assertEquals("北海道", csv.getRowsAsList().get(0).getPrefectureName());
+		assertEquals(0, server.requestCount());
+	}
+
+	@Test
+	public void deserializedCSVKeepsProperties() throws Exception {
+		ZipcodeCSV csv = ZipcodeCSV.getOrDownload(sjisCacheProperties());
+
+		ZipcodeCSV copy = deserialize(serialize(csv));
+
+		assertEquals("北海道", copy.getRowsAsList().get(0).getPrefectureName());
+	}
+
+	@Test
+	public void deleteFilesUsesGivenProperties() throws Exception {
+		Path cacheDir = tempDir.resolve("code-cache");
+		Files.createDirectories(cacheDir);
+		Files.writeString(cacheDir.resolve("utf_ken_all.csv"), "csv");
+
+		ZipcodeCSV.deleteFiles(ZipcodeCSVProperties.builder().cacheDir(cacheDir).build());
+
+		assertFalse(Files.exists(cacheDir));
+	}
+
+	/**
+	 * Shift_JISのCSVを有効期間内のキャッシュとして置き、それを読む設定を作成します。
+	 */
+	private ZipcodeCSVProperties sjisCacheProperties() throws Exception {
+		Path cacheDir = tempDir.resolve("sjis-cache");
+		Files.createDirectories(cacheDir);
+		String csv = new String(TestHttpServer.sampleCsv(), StandardCharsets.UTF_8);
+		Files.write(cacheDir.resolve("utf_ken_all.csv"), csv.getBytes(SJIS));
+		return ZipcodeCSVProperties.builder().cacheDir(cacheDir).csvEncoding(SJIS).build();
+	}
+
+	private static byte[] serialize(Object object) throws IOException {
+		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+		try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
+			out.writeObject(object);
+		}
+		return bytes.toByteArray();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static <T> T deserialize(byte[] bytes) throws Exception {
+		try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
+			return (T) in.readObject();
+		}
 	}
 
 	// ---- 行データ・ファイル操作 ----

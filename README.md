@@ -47,21 +47,33 @@ ZipcodeCSVRow
 
 ## 設定
 
-システムプロパティーで変更できます。
+Javaコード、またはシステムプロパティーで変更できます。両方で設定した項目は、Javaコードの値を優先します。
 
-| システムプロパティー | 内容 | 既定値 |
-|---|---|---|
-| `jp.try0.zipcode.csv.cache_dir` | ダウンロードしたファイルの保存先 | `java.io.tmpdir`配下の`jp.try0.zipcode` |
-| `jp.try0.zipcode.csv.cache_days` | キャッシュを使用する日数 | `10` |
-| `jp.try0.zipcode.csv.fallback_to_cache` | ダウンロードに失敗した場合、期限切れのキャッシュを使用する（`true`）か、例外をスローする（`false`）か | `false` |
-| `jp.try0.zipcode.csv.encoding` | CSVの文字コード | `UTF-8` |
-| `jp.try0.zipcode.url.utf_ken_all` | ダウンロードURL | 日本郵便のutf_ken_all.zip |
-| `jp.try0.zipcode.http.connection_timeout` | 接続タイムアウト（ミリ秒） | `10000` |
-| `jp.try0.zipcode.http.read_timeout` | 読み込みタイムアウト（ミリ秒） | `60000` |
+```java
+ZipcodeCSVProperties props = ZipcodeCSVProperties.builder()
+        .cacheDir(Path.of("/var/cache/myapp/zipcode"))
+        .fallbackToCache(true)
+        .build();
+
+ZipcodeCSV csv = ZipcodeCSV.getOrDownload(props);
+```
 
 ```
 -Djp.try0.zipcode.csv.cache_dir=/var/cache/myapp/zipcode -Djp.try0.zipcode.csv.fallback_to_cache=true
 ```
+
+| ビルダー | システムプロパティー | 内容 | 既定値 |
+|---|---|---|---|
+| `cacheDir(Path)` | `jp.try0.zipcode.csv.cache_dir` | ダウンロードしたファイルの保存先 | `java.io.tmpdir`配下の`jp.try0.zipcode` |
+| `cacheDays(int)` | `jp.try0.zipcode.csv.cache_days` | キャッシュを使用する日数 | `10` |
+| `fallbackToCache(boolean)` | `jp.try0.zipcode.csv.fallback_to_cache` | ダウンロードに失敗した場合、期限切れのキャッシュを使用する（`true`）か、例外をスローする（`false`）か | `false` |
+| `csvEncoding(Charset)` | `jp.try0.zipcode.csv.encoding` | CSVの文字コード | `UTF-8` |
+| `downloadUrl(String)` | `jp.try0.zipcode.url.utf_ken_all` | ダウンロードURL | 日本郵便のutf_ken_all.zip |
+| `connectionTimeout(Duration)` | `jp.try0.zipcode.http.connection_timeout`（ミリ秒） | 接続タイムアウト | 10秒 |
+| `readTimeout(Duration)` | `jp.try0.zipcode.http.read_timeout`（ミリ秒） | 読み込みタイムアウト | 60秒 |
+
+ビルダーで設定しなかった項目は、システムプロパティー、既定値の順に使用します。設定を引数に取らないメソッド（`getOrDownload()`など）は、システムプロパティーと既定値を使用します。  
+設定を受け取るメソッド：`ZipcodeCSV.getOrDownload(props)`、`ZipcodeCSV.deleteFiles(props)`、`new ZipcodeCSVParser(file, props)`、`ZipcodeCSVDownloader#download(props)`、`ZipcodeCSVDownloader#existsDownloadUrl(props)`
 
 Linuxでは`java.io.tmpdir`（`/tmp`）を全ユーザーで共有するため、サーバーで使用する場合は`cache_dir`にアプリケーション専用のディレクトリーを指定してください。  
 キャッシュの保存先では、ライブラリーが作成するファイル（`utf_ken_all.zip`、`utf_ken_all.csv`、`utf_ken_all*.tmp`）のみ書き込み・削除します。  
@@ -97,6 +109,7 @@ parser.forEachRow(row -> {
 その他の変更
 
 - キャッシュの保存先と、ダウンロード失敗時の動作を設定できるようにしました（[設定](#設定)）。
+- 設定をJavaコードで指定できるようにしました（`ZipcodeCSVProperties.builder()`）。`ZipcodeCSVProperties`は不変オブジェクトになり、継承できません（`final`）。
 - `ZipcodeCSV.deleteFiles()`（`ZipcodeFiles.clean()`）は、保存先ディレクトリーを丸ごと削除せず、ライブラリーが作成したファイルのみ削除します。
 - ダウンロード・解凍は一時ファイルに書き込んでから置き換えるため、失敗しても前回のファイルは壊れません。受信が途中で切れた場合は例外をスローします。
 - Zipファイルにutf_ken_all.csvが含まれていない場合、`getOrDownload()`は`ZipcodeCSVException`をスローします。

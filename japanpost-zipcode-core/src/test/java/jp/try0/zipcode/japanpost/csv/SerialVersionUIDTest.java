@@ -15,7 +15,8 @@ import jp.try0.zipcode.japanpost.csv.data.ZipcodeCSVRow;
 public class SerialVersionUIDTest {
 
 	@ParameterizedTest
-	@ValueSource(classes = { ZipcodeCSV.class, ZipcodeCSVRow.class, ZipcodeCSVException.class })
+	@ValueSource(classes = { ZipcodeCSV.class, ZipcodeCSVRow.class, ZipcodeCSVException.class,
+			ZipcodeCSVProperties.class })
 	public void declaresFixedSerialVersionUID(Class<?> type) {
 		assertEquals(1L, ObjectStreamClass.lookup(type).getSerialVersionUID());
 	}

@@ -119,6 +119,39 @@ public class ZipcodeCSVDownloaderTest {
 		}
 	}
 
+	@Test
+	public void downloadUsesGivenProperties() throws Exception {
+		Path dir = tempDir.resolve("code-cache");
+		props.set(SystemProperties.DOWNLOAD_URL, "http://127.0.0.1:1/unused.zip");
+		byte[] zip = TestHttpServer.zip("utf_ken_all.csv", TestHttpServer.sampleCsv());
+		server.respond(200, zip);
+		ZipcodeCSVProperties properties = ZipcodeCSVProperties.builder()
+				.downloadUrl(server.url())
+				.cacheDir(dir)
+				.build();
+
+		File downloaded = ZipcodeCSVDownloader.get().download(properties);
+
+		assertEquals(dir.resolve("utf_ken_all.zip").toFile(), downloaded);
+		assertArrayEquals(zip, Files.readAllBytes(downloaded.toPath()));
+	}
+
+	@Test
+	public void existsDownloadUrlUsesTimeoutsOfGivenProperties() throws Exception {
+		try (ServerSocket silentServer = new ServerSocket(0, 50, InetAddress.getLoopbackAddress())) {
+			props.set(SystemProperties.CONNECTION_TIMEOUT, "60000")
+					.set(SystemProperties.READ_TIMEOUT, "60000");
+			ZipcodeCSVProperties properties = ZipcodeCSVProperties.builder()
+					.downloadUrl("http://127.0.0.1:" + silentServer.getLocalPort() + "/utf_ken_all.zip")
+					.connectionTimeout(Duration.ofMillis(500))
+					.readTimeout(Duration.ofMillis(500))
+					.build();
+
+			assertTimeoutPreemptively(Duration.ofSeconds(10),
+					() -> assertFalse(ZipcodeCSVDownloader.get().existsDownloadUrl(properties)));
+		}
+	}
+
 	/**
 	 * 日本郵便側でダウンロードURLが変更されていないか（リンク切れ）を検知します。
 	 */

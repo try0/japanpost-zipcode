@@ -25,6 +25,7 @@ import org.apache.commons.csv.CSVRecord;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import jp.try0.zipcode.japanpost.csv.ZipcodeCSVProperties;
 import jp.try0.zipcode.japanpost.csv.data.ZipcodeCSVColumnType;
 import jp.try0.zipcode.japanpost.csv.data.ZipcodeCSVRow;
 import jp.try0.zipcode.japanpost.testutil.SystemProperties;
@@ -158,6 +159,20 @@ public class ZipcodeCSVParserTest {
 			} else {
 				System.setProperty(ENCODING_PROPERTY, original);
 			}
+		}
+	}
+
+	@Test
+	public void rowsUseEncodingOfGivenProperties() throws Exception {
+		Path sjisCsv = tempDir.resolve("sjis.csv");
+		Charset sjis = Charset.forName("Windows-31J");
+		Files.write(sjisCsv, HOKKAIDO_ROW.getBytes(sjis));
+		ZipcodeCSVProperties properties = ZipcodeCSVProperties.builder().csvEncoding(sjis).build();
+
+		try (SystemProperties props = new SystemProperties().set(ENCODING_PROPERTY, "UTF-8")) {
+			ZipcodeCSVRow row = new ZipcodeCSVParser(sjisCsv.toFile(), properties).getRowsAsList().get(0);
+
+			assertEquals("北海道", row.getPrefectureName());
 		}
 	}
 

@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import jp.try0.zipcode.japanpost.csv.ZipcodeCSVProperties;
 import jp.try0.zipcode.japanpost.testutil.SystemProperties;
 import jp.try0.zipcode.japanpost.testutil.TestHttpServer;
 
@@ -96,6 +97,32 @@ public final class ZipcodeFilesUnitTest {
 	}
 
 	@Test
+	public void pathsFollowGivenProperties() {
+		Path other = tempDir.resolve("other");
+		ZipcodeCSVProperties properties = ZipcodeCSVProperties.builder().cacheDir(other).build();
+
+		assertEquals(other.resolve("utf_ken_all.zip"), ZipcodeFiles.getZipPath(properties));
+		assertEquals(other.resolve("utf_ken_all.csv"), ZipcodeFiles.getCSVPath(properties));
+	}
+
+	@Test
+	public void unzipAndCleanUseGivenProperties() throws Exception {
+		Path other = tempDir.resolve("other");
+		ZipcodeCSVProperties properties = ZipcodeCSVProperties.builder().cacheDir(other).build();
+		Path zip = tempDir.resolve("utf_ken_all.zip");
+		Files.write(zip, TestHttpServer.zip("utf_ken_all.csv", TestHttpServer.sampleCsv()));
+
+		File csv = ZipcodeFiles.unzip(zip.toFile(), properties);
+
+		assertEquals(other.resolve("utf_ken_all.csv").toFile(), csv);
+		assertFalse(Files.exists(cacheDir), "システムプロパティーの保存先に書き込まれた");
+
+		ZipcodeFiles.clean(properties);
+
+		assertFalse(Files.exists(other));
+	}
+
+	@Test
 	public void unzipExtractsCSVIntoCacheDir() throws Exception {
 		Path zip = tempDir.resolve("utf_ken_all.zip");
 		Files.write(zip, TestHttpServer.zip("utf_ken_all.csv", TestHttpServer.sampleCsv()));
@@ -149,6 +176,6 @@ public final class ZipcodeFilesUnitTest {
 
 	@Test
 	public void cleanDoesNothingWhenCacheDirIsMissing() {
-		assertDoesNotThrow(ZipcodeFiles::clean);
+		assertDoesNotThrow(() -> ZipcodeFiles.clean());
 	}
 }

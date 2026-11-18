@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Stream;
@@ -41,13 +42,30 @@ public class ZipcodeCSVParser implements ZipcodeCSVRowSource {
 	File file;
 
 	/**
+	 * 設定
+	 */
+	final ZipcodeCSVProperties properties;
+
+	/**
 	 * コンストラクター<br>
-	 * ファイルは読み込み時に開きます。
+	 * ファイルは読み込み時に開きます。文字コードはシステムプロパティー、既定値の順に使用します。
 	 *
 	 * @param file CSVファイル、またはutf_ken_all.csvを含むZipファイル
 	 */
 	public ZipcodeCSVParser(File file) {
+		this(file, ZipcodeCSVProperties.get());
+	}
+
+	/**
+	 * コンストラクター<br>
+	 * ファイルは読み込み時に開きます。
+	 *
+	 * @param file       CSVファイル、またはutf_ken_all.csvを含むZipファイル
+	 * @param properties 設定（文字コードを使用します）
+	 */
+	public ZipcodeCSVParser(File file, ZipcodeCSVProperties properties) {
 		this.file = file;
+		this.properties = Objects.requireNonNull(properties, "properties");
 	}
 
 	/**
@@ -59,7 +77,7 @@ public class ZipcodeCSVParser implements ZipcodeCSVRowSource {
 	 * @throws IOException
 	 */
 	protected CSVParser newCSVParser(File file) throws IOException {
-		Charset charset = Charset.forName(ZipcodeCSVProperties.get().getCSVEncoding());
+		Charset charset = Charset.forName(properties.getCSVEncoding());
 		InputStream in = ZipcodeFiles.openCSV(file);
 		try {
 			return CSVFormat.DEFAULT.parse(new InputStreamReader(in, charset));

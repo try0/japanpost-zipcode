@@ -56,7 +56,17 @@ public final class ZipcodeFiles {
 	 * @return utf_ken_all.zipのパス
 	 */
 	public static Path getZipPath() {
-		return getCacheDir().resolve(ZIP_FILE_NAME);
+		return getZipPath(ZipcodeCSVProperties.get());
+	}
+
+	/**
+	 * ダウンロードしたZipファイルの保存先を取得します。
+	 *
+	 * @param properties 設定
+	 * @return utf_ken_all.zipのパス
+	 */
+	public static Path getZipPath(ZipcodeCSVProperties properties) {
+		return properties.getCacheDir().resolve(ZIP_FILE_NAME);
 	}
 
 	/**
@@ -65,7 +75,17 @@ public final class ZipcodeFiles {
 	 * @return utf_ken_all.csvのパス
 	 */
 	public static Path getCSVPath() {
-		return getCacheDir().resolve(CSV_FILE_NAME);
+		return getCSVPath(ZipcodeCSVProperties.get());
+	}
+
+	/**
+	 * 解凍したCSVファイルの保存先を取得します。
+	 *
+	 * @param properties 設定
+	 * @return utf_ken_all.csvのパス
+	 */
+	public static Path getCSVPath(ZipcodeCSVProperties properties) {
+		return properties.getCacheDir().resolve(CSV_FILE_NAME);
 	}
 
 	/**
@@ -77,11 +97,24 @@ public final class ZipcodeFiles {
 	 * @throws IOException 読み込み・書き込みに失敗した場合
 	 */
 	public static File unzip(File file) throws IOException {
+		return unzip(file, ZipcodeCSVProperties.get());
+	}
+
+	/**
+	 * Zipファイルからutf_ken_all.csvを取り出し、設定のキャッシュディレクトリーに保存します。<br>
+	 * utf_ken_all.csv以外のエントリーは書き出しません。
+	 *
+	 * @param file       Zipファイル
+	 * @param properties 設定
+	 * @return 保存したCSVファイル。Zipファイルにutf_ken_all.csvが含まれない場合はnull
+	 * @throws IOException 読み込み・書き込みに失敗した場合
+	 */
+	public static File unzip(File file, ZipcodeCSVProperties properties) throws IOException {
 		try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(Files.newInputStream(file.toPath())))) {
 			ZipEntry entry;
 			while ((entry = zis.getNextEntry()) != null) {
 				if (!entry.isDirectory() && CSV_FILE_NAME.equals(entry.getName())) {
-					Path csvPath = getCSVPath();
+					Path csvPath = getCSVPath(properties);
 					write(zis, csvPath, -1);
 					return csvPath.toFile();
 				}
@@ -184,7 +217,18 @@ public final class ZipcodeFiles {
 	 * @throws IOException 削除に失敗した場合
 	 */
 	public static void clean() throws IOException {
-		Path dir = getCacheDir();
+		clean(ZipcodeCSVProperties.get());
+	}
+
+	/**
+	 * 設定のキャッシュディレクトリーから、このライブラリーが作成したファイルを削除します。<br>
+	 * キャッシュディレクトリーが空になった場合は、ディレクトリーも削除します。
+	 *
+	 * @param properties 設定
+	 * @throws IOException 削除に失敗した場合
+	 */
+	public static void clean(ZipcodeCSVProperties properties) throws IOException {
+		Path dir = properties.getCacheDir();
 		if (!Files.isDirectory(dir)) {
 			return;
 		}
