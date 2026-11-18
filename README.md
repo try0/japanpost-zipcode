@@ -1,5 +1,7 @@
 # utf_ken_all.zipユーティリティー
 
+[![Maven Central](https://img.shields.io/maven-central/v/jp.try0.zipcode/japanpost-zipcode-core)](https://central.sonatype.com/artifact/jp.try0.zipcode/japanpost-zipcode-core)
+
 [https://www.post.japanpost.jp/zipcode/download.html](https://www.post.japanpost.jp/zipcode/download.html)   
 [https://www.post.japanpost.jp/zipcode/dl/utf-zip.html](https://www.post.japanpost.jp/zipcode/dl/utf-zip.html)
 
