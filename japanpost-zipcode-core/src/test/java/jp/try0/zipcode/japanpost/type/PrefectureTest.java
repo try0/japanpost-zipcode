@@ -20,6 +20,18 @@ public class PrefectureTest {
 	@ParameterizedTest
 	@CsvSource({
 			"HOKKAIDO, 北海道",
+			"TOKYO, 東京",
+			"OSAKA, 大阪",
+			"KANAGAWA, 神奈川",
+			"OKINAWA, 沖縄",
+	})
+	public void name(Prefecture prefecture, String expected) {
+		assertEquals(expected, prefecture.getName());
+	}
+
+	@ParameterizedTest
+	@CsvSource({
+			"HOKKAIDO, 北海道",
 			"TOKYO, 東京都",
 			"KYOTO, 京都府",
 			"OSAKA, 大阪府",

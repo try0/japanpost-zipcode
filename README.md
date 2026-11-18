@@ -126,5 +126,6 @@ parser.forEachRow(row -> {
   | `hasMultiAreaZipcode()` | `getHasMultiAreaZipcode()` |
 - システムプロパティーに不正な値（数値以外、負の値）を指定した場合、プロパティー名を含む`IllegalArgumentException`をスローします。
 - Javaモジュールシステム用に、モジュール名`jp.try0.zipcode.japanpost`（`Automatic-Module-Name`）を設定しました。
+- `Prefecture.HOKKAIDO.getName()`は「北海」ではなく「北海道」を返します（`getFullName()`は変更なし）。
 
 依存するcommons-csvを1.14.1に更新したため、commons-ioとcommons-codecが推移的依存関係として追加されます。
