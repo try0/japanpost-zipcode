@@ -2,6 +2,7 @@ package jp.try0.zipcode.japanpost.csv.data;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 
 import org.apache.commons.csv.CSVRecord;
 
@@ -11,6 +12,8 @@ import org.apache.commons.csv.CSVRecord;
  * @see https://www.post.japanpost.jp/zipcode/dl/utf-readme.html
  */
 public class ZipcodeCSVRow implements Serializable {
+
+	private static final long serialVersionUID = 1L;
 
 	/**
 	 * 列定義（{@link ZipcodeCSVColumnType#values()}は呼び出しごとに配列を複製するため保持しておく）
@@ -392,6 +395,9 @@ public class ZipcodeCSVRow implements Serializable {
 
 	public void debugPrint() {
 		for (Field d : getClass().getDeclaredFields()) {
+			if (Modifier.isStatic(d.getModifiers())) {
+				continue;
+			}
 			try {
 				d.setAccessible(true);
 				Object obj = d.get(this);
@@ -408,6 +414,9 @@ public class ZipcodeCSVRow implements Serializable {
 	public String debugToString() {
 		StringBuilder sb = new StringBuilder();
 		for (Field d : getClass().getDeclaredFields()) {
+			if (Modifier.isStatic(d.getModifiers())) {
+				continue;
+			}
 			try {
 				d.setAccessible(true);
 				Object obj = d.get(this);

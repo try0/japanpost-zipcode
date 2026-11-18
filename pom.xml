@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>jp.try0.zipcode</groupId>
 	<artifactId>japanpost-zipcode-parent</artifactId>
-	<version>0.0.2</version>
+	<version>1.0.0</version>
 	<packaging>pom</packaging>
 
 	<modules>
@@ -117,6 +117,10 @@
 					<excludes>
 						<exclude>some test to exclude here</exclude>
 					</excludes>
+					<systemPropertyVariables>
+						<!-- テストが実際のキャッシュ（java.io.tmpdir）を変更しないようにする -->
+						<jp.try0.zipcode.csv.cache_dir>${project.build.directory}/zipcode-cache</jp.try0.zipcode.csv.cache_dir>
+					</systemPropertyVariables>
 				</configuration>
 			</plugin>
 			<plugin>

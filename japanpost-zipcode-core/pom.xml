@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>jp.try0.zipcode</groupId>
 		<artifactId>japanpost-zipcode-parent</artifactId>
-		<version>0.0.2</version>
+		<version>1.0.0</version>
 	</parent>
 	<artifactId>japanpost-zipcode-core</artifactId>
 

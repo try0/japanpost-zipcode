@@ -1,14 +1,12 @@
 package jp.try0.zipcode.japanpost.csv.download;
 
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Path;
 
 import jp.try0.zipcode.japanpost.csv.ZipcodeCSVException;
 import jp.try0.zipcode.japanpost.csv.ZipcodeCSVProperties;
@@ -28,58 +26,42 @@ public class ZipcodeCSVDownloader {
 	}
 
 	/**
-	 * utf_ken_all.zipをダウンロードします。
+	 * utf_ken_all.zipをキャッシュディレクトリーにダウンロードします。<br>
+	 * 失敗した場合は途中までのファイルを残さず、前回ダウンロードしたファイルも変更しません。
 	 *
-	 * @return
-	 * @throws MalformedURLException
-	 * @throws IOException
+	 * @return ダウンロードしたZipファイル
+	 * @throws ZipcodeCSVException HTTPステータスが200以外の場合
+	 * @throws IOException         通信・書き込みに失敗した場合、または受信が途中で終了した場合
 	 */
 	public File download() throws MalformedURLException, IOException {
 		return download(ZipcodeCSVProperties.get().getDownloadUrl());
 	}
 
-	/**
-	 *
-	 * @param url
-	 * @param fileName
-	 * @return
-	 * @throws MalformedURLException
-	 * @throws IOException
-	 */
 	private File download(String url) throws MalformedURLException, IOException {
+		HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+		try {
+			conn.setAllowUserInteraction(false);
+			conn.setInstanceFollowRedirects(true);
 
-		File file = ZipcodeFiles.ZIP_PATH.toFile();
-		file.getParentFile().mkdirs();
-		file.createNewFile();
+			var props = ZipcodeCSVProperties.get();
+			conn.setConnectTimeout(props.getConnectionTimeout());
+			conn.setReadTimeout(props.getReadTimeout());
+			conn.setRequestMethod("GET");
 
-		URL csvUrl = new URL(url);
-		HttpURLConnection conn = (HttpURLConnection) csvUrl.openConnection();
-		conn.setAllowUserInteraction(false);
-		conn.setInstanceFollowRedirects(true);
-
-		var props = ZipcodeCSVProperties.get();
-		conn.setConnectTimeout(props.getConnectionTimeout());
-		conn.setReadTimeout(props.getReadTimeout());
-		conn.setRequestMethod("GET");
-		conn.connect();
-
-		int responseCode = conn.getResponseCode();
-		if (responseCode != HttpURLConnection.HTTP_OK) {
-			throw new ZipcodeCSVException("HTTP status " + responseCode + " " + url);
-		}
-
-		try (DataInputStream ins = new DataInputStream(conn.getInputStream())) {
-			try (DataOutputStream outs = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
-				byte[] b = new byte[ZipcodeFiles.BUFFER];
-				int readByte = 0;
-
-				while (-1 != (readByte = ins.read(b))) {
-					outs.write(b, 0, readByte);
-				}
+			int responseCode = conn.getResponseCode();
+			if (responseCode != HttpURLConnection.HTTP_OK) {
+				throw new ZipcodeCSVException("HTTP status " + responseCode + " " + url);
 			}
-		}
 
-		return file;
+			Path zipPath = ZipcodeFiles.getZipPath();
+			try (InputStream in = conn.getInputStream()) {
+				// HttpURLConnectionは受信が途中で切れても例外にならないため、Content-Lengthと照合する
+				ZipcodeFiles.write(in, zipPath, conn.getContentLengthLong());
+			}
+			return zipPath.toFile();
+		} finally {
+			conn.disconnect();
+		}
 	}
 
 	/**

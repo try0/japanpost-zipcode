@@ -3,11 +3,12 @@ package jp.try0.zipcode.japanpost.csv;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
-import java.nio.file.attribute.FileTime;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.stream.Stream;
 
 import jp.try0.zipcode.japanpost.csv.data.ZipcodeCSVRow;
@@ -21,28 +22,47 @@ import jp.try0.zipcode.japanpost.util.ZipcodeFiles;
  */
 public class ZipcodeCSV implements ZipcodeCSVRowSource, Serializable {
 
+	private static final long serialVersionUID = 1L;
+
+	private static final Logger LOGGER = System.getLogger(ZipcodeCSV.class.getName());
+
 	/**
 	 * utf_ken_all.csvを取得します。<br>
-	 * 
-	 * @return
-	 * @throws IOException
+	 * キャッシュディレクトリー（{@link ZipcodeCSVProperties#getCacheDir()}）のCSVが
+	 * 有効期間内（{@link ZipcodeCSVProperties#getCacheDays()}）であればそれを使用し、それ以外はダウンロードします。<br>
+	 * ダウンロードに失敗した場合、{@link ZipcodeCSVProperties#isFallbackToCache()}がtrueで期限切れのキャッシュがあれば、
+	 * 警告をログに出力してキャッシュを使用します。
+	 *
+	 * @return utf_ken_all.csv
+	 * @throws IOException         ダウンロード・解凍に失敗した場合
+	 * @throws ZipcodeCSVException HTTPステータスが200以外の場合、またはZipファイルにCSVが含まれていない場合
 	 */
 	public static ZipcodeCSV getOrDownload() throws IOException {
-		// 一時ディレクトリーに保持している場合はそちらを使用する。
-		File csvFile = ZipcodeFiles.CSV_PATH.toFile();
-		if (csvFile.exists()) {
-			FileTime fileTime = Files.getLastModifiedTime(ZipcodeFiles.CSV_PATH);
-			Instant instant = fileTime.toInstant();
-			LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
-			int cacheDays = ZipcodeCSVProperties.get().getCacheDays();
-			if (localDateTime.isAfter(LocalDateTime.now().minusDays(cacheDays))) {
-				return new ZipcodeCSV(csvFile);
-			}
+		ZipcodeCSVProperties props = ZipcodeCSVProperties.get();
+		Path csvPath = ZipcodeFiles.getCSVPath();
+		if (Files.isRegularFile(csvPath) && isFresh(csvPath, props.getCacheDays())) {
+			return new ZipcodeCSV(csvPath.toFile());
 		}
 
-		ZipcodeCSVDownloader downloader = ZipcodeCSVDownloader.get();
-		var zipfile = downloader.download();
-		return new ZipcodeCSV(ZipcodeFiles.unzip(zipfile));
+		try {
+			File zipFile = ZipcodeCSVDownloader.get().download();
+			File csvFile = ZipcodeFiles.unzip(zipFile);
+			if (csvFile == null) {
+				throw new ZipcodeCSVException("Zipファイルにutf_ken_all.csvが含まれていません: " + zipFile);
+			}
+			return new ZipcodeCSV(csvFile);
+		} catch (IOException | ZipcodeCSVException e) {
+			if (props.isFallbackToCache() && Files.isRegularFile(csvPath)) {
+				LOGGER.log(Level.WARNING, "ダウンロードに失敗したため、期限切れのキャッシュを使用します: " + csvPath, e);
+				return new ZipcodeCSV(csvPath.toFile());
+			}
+			throw e;
+		}
+	}
+
+	private static boolean isFresh(Path csvPath, int cacheDays) throws IOException {
+		Instant modified = Files.getLastModifiedTime(csvPath).toInstant();
+		return modified.isAfter(Instant.now().minus(Duration.ofDays(cacheDays)));
 	}
 
 	/**

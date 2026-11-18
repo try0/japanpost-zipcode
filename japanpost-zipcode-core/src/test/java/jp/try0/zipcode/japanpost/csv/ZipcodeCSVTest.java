@@ -5,26 +5,48 @@ import java.io.File;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.io.TempDir;
 
+import jp.try0.zipcode.japanpost.testutil.SystemProperties;
 import jp.try0.zipcode.japanpost.util.ZipcodeFiles;
 
 /**
- * 日本郵便のサーバーからダウンロードするため、"network"タグを付与しています。
+ * 日本郵便のサーバーからダウンロードするため、"network"タグを付与しています。<br>
+ * キャッシュは一時ディレクトリーを使用します。
  */
 @Tag("network")
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class ZipcodeCSVTest {
 
+	@TempDir
+	Path tempDir;
+
+	private final SystemProperties props = new SystemProperties();
+
+	@BeforeEach
+	public void useTempCacheDir() {
+		props.set(SystemProperties.CACHE_DIR, tempDir.toString())
+				.set(SystemProperties.DOWNLOAD_URL, null);
+	}
+
+	@AfterEach
+	public void restore() {
+		props.close();
+	}
+
 //	@Test
 	public void cacheTest() throws IOException {
 		{
-			File file = ZipcodeFiles.CSV_PATH.toFile();
+			File file = ZipcodeFiles.getCSVPath().toFile();
 			if (file.exists()) {
 				if (!file.delete()) {
 					throw new RuntimeException();

@@ -1,79 +1,85 @@
 package jp.try0.zipcode.japanpost.util;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
+import jp.try0.zipcode.japanpost.csv.ZipcodeCSVProperties;
+
 /**
- * ファイルユーティリティ
+ * ファイルユーティリティ<br>
+ * キャッシュディレクトリーでは、このライブラリーが作成するファイルのみ書き込み・削除します。
  */
 public final class ZipcodeFiles {
 
-	public static final Path TMP_DIR_PATH = Path.of(System.getProperty("java.io.tmpdir"), "jp.try0.zipcode");
-	public static final Path WORK_PATH = Path.of(TMP_DIR_PATH.toString(), "work");
-	public static final Path ZIP_PATH = Path.of(TMP_DIR_PATH.toString(), "utf_ken_all.zip");
-	public static final Path CSV_PATH = Path.of(TMP_DIR_PATH.toString(), "utf_ken_all.csv");
+	private static final String ZIP_FILE_NAME = "utf_ken_all.zip";
+	private static final String CSV_FILE_NAME = "utf_ken_all.csv";
+
+	/**
+	 * 書き込み途中の一時ファイル名（utf_ken_all*.tmp）
+	 */
+	private static final String TEMP_FILE_PREFIX = "utf_ken_all";
+	private static final String TEMP_FILE_SUFFIX = ".tmp";
+
+	public static final int BUFFER = 4096;
 
 	private ZipcodeFiles() {
 		throw new IllegalStateException();
 	}
 
-	public static final int BUFFER = 4096;
+	/**
+	 * キャッシュディレクトリーを取得します。
+	 *
+	 * @return キャッシュディレクトリー
+	 * @see ZipcodeCSVProperties#getCacheDir()
+	 */
+	public static Path getCacheDir() {
+		return ZipcodeCSVProperties.get().getCacheDir();
+	}
 
 	/**
-	 * Zipファイルを解凍してutf_ken_all.csvを取得します。
+	 * ダウンロードしたZipファイルの保存先を取得します。
 	 *
-	 * @param file
-	 * @return
-	 * @throws java.io.IOException
+	 * @return utf_ken_all.zipのパス
 	 */
-	public static final File unzip(File file) throws java.io.IOException {
+	public static Path getZipPath() {
+		return getCacheDir().resolve(ZIP_FILE_NAME);
+	}
 
-		WORK_PATH.toFile().mkdirs();
-		Path workDir = WORK_PATH.toAbsolutePath().normalize();
+	/**
+	 * 解凍したCSVファイルの保存先を取得します。
+	 *
+	 * @return utf_ken_all.csvのパス
+	 */
+	public static Path getCSVPath() {
+		return getCacheDir().resolve(CSV_FILE_NAME);
+	}
 
-		try (FileInputStream fis = new FileInputStream(file);
-				ZipInputStream zis = new ZipInputStream(new BufferedInputStream(fis));) {
+	/**
+	 * Zipファイルからutf_ken_all.csvを取り出し、キャッシュディレクトリーに保存します。<br>
+	 * utf_ken_all.csv以外のエントリーは書き出しません。
+	 *
+	 * @param file Zipファイル
+	 * @return 保存したCSVファイル。Zipファイルにutf_ken_all.csvが含まれない場合はnull
+	 * @throws IOException 読み込み・書き込みに失敗した場合
+	 */
+	public static File unzip(File file) throws IOException {
+		try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(Files.newInputStream(file.toPath())))) {
 			ZipEntry entry;
 			while ((entry = zis.getNextEntry()) != null) {
-				int count;
-				byte data[] = new byte[BUFFER];
-				Path entryPath = workDir.resolve(entry.getName()).normalize();
-				if (!entryPath.startsWith(workDir)) {
-					// Zip Slip対策
-					throw new IOException("作業ディレクトリー外を指すZipエントリーです: " + entry.getName());
-				}
-				File entryFile = entryPath.toFile();
-				if (entry.isDirectory()) {
-					entryFile.mkdir();
-					continue;
-				}
-
-				try (FileOutputStream fos = new FileOutputStream(entryFile);
-						BufferedOutputStream dest = new BufferedOutputStream(fos, BUFFER);) {
-					while ((count = zis.read(data, 0, BUFFER)) != -1) {
-						dest.write(data, 0, count);
-					}
-					dest.flush();
-				}
-				zis.closeEntry();
-
-				String entryName = entry.getName();
-				if (entryName.equals("utf_ken_all.csv")) {
-					var csvPath = Files.copy(entryFile.toPath(), CSV_PATH, StandardCopyOption.REPLACE_EXISTING);
+				if (!entry.isDirectory() && CSV_FILE_NAME.equals(entry.getName())) {
+					Path csvPath = getCSVPath();
+					write(zis, csvPath, -1);
 					return csvPath.toFile();
 				}
 			}
@@ -83,8 +89,41 @@ public final class ZipcodeFiles {
 	}
 
 	/**
+	 * 入力を一時ファイルに書き込んだ後、保存先を置き換えます。<br>
+	 * 書き込み途中のファイルを他から参照されることはありません。
+	 * 失敗した場合は一時ファイルを削除し、保存先の既存ファイルは変更しません。
+	 *
+	 * @param in             入力（クローズしません）
+	 * @param target         保存先
+	 * @param expectedLength 想定するバイト数。不明な場合は負の値
+	 * @throws IOException 読み込み・書き込みに失敗した場合、またはバイト数が想定と異なる場合
+	 */
+	public static void write(InputStream in, Path target, long expectedLength) throws IOException {
+		Path dir = target.toAbsolutePath().getParent();
+		Files.createDirectories(dir);
+		Path temp = Files.createTempFile(dir, TEMP_FILE_PREFIX, TEMP_FILE_SUFFIX);
+		try {
+			long length = Files.copy(in, temp, StandardCopyOption.REPLACE_EXISTING);
+			if (expectedLength >= 0 && length != expectedLength) {
+				throw new IOException("途中で終了しました（" + length + "/" + expectedLength + "バイト）: " + target);
+			}
+			replace(temp, target);
+		} finally {
+			Files.deleteIfExists(temp);
+		}
+	}
+
+	private static void replace(Path source, Path target) throws IOException {
+		try {
+			Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+		} catch (AtomicMoveNotSupportedException e) {
+			Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+		}
+	}
+
+	/**
 	 * Zipファイルの場合、解凍してファイルを１つ取得します。
-	 * 
+	 *
 	 * @param file
 	 * @return
 	 */
@@ -120,22 +159,29 @@ public final class ZipcodeFiles {
 	}
 
 	/**
-	 * 一時ディレクトリーを削除します。
-	 * 
-	 * @throws IOException
+	 * キャッシュディレクトリーから、このライブラリーが作成したファイルを削除します。<br>
+	 * キャッシュディレクトリーが空になった場合は、ディレクトリーも削除します。
+	 *
+	 * @throws IOException 削除に失敗した場合
 	 */
 	public static void clean() throws IOException {
-		if (!Files.exists(TMP_DIR_PATH)) {
+		Path dir = getCacheDir();
+		if (!Files.isDirectory(dir)) {
 			return;
 		}
 
-		// 中身から順に削除する
-		List<Path> paths;
-		try (Stream<Path> walk = Files.walk(TMP_DIR_PATH)) {
-			paths = walk.sorted(Comparator.reverseOrder()).collect(Collectors.toList());
+		Files.deleteIfExists(dir.resolve(ZIP_FILE_NAME));
+		Files.deleteIfExists(dir.resolve(CSV_FILE_NAME));
+		try (DirectoryStream<Path> temps = Files.newDirectoryStream(dir, TEMP_FILE_PREFIX + "*" + TEMP_FILE_SUFFIX)) {
+			for (Path temp : temps) {
+				Files.deleteIfExists(temp);
+			}
 		}
-		for (Path path : paths) {
-			Files.delete(path);
+
+		try {
+			Files.deleteIfExists(dir);
+		} catch (DirectoryNotEmptyException ignore) {
+			// 利用者のファイルが残っている
 		}
 	}
 
