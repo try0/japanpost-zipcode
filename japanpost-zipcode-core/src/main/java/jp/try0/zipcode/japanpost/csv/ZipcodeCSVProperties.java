@@ -36,7 +36,7 @@ public class ZipcodeCSVProperties {
 
 	/**
 	 * ダウンロードURL（{@link #DOWNLOAD_URL}）を取得します。<br>
-	 * 環境変数にjp.try0.zipcode.url.utf_ken_allが指定されている場合、そちらを優先します。
+	 * システムプロパティーにjp.try0.zipcode.url.utf_ken_allが指定されている場合、そちらを優先します。
 	 * 
 	 * @return utf_ken_all.zipのダウンロードURL
 	 */
@@ -46,9 +46,9 @@ public class ZipcodeCSVProperties {
 
 	/**
 	 * CSVファイルの文字コード（{@link #CSV_ENCODING}）を取得します。<br>
-	 * 環境変数にjp.try0.zipcode.csv.encodingが指定されている場合、そちらを優先します。
-	 * 
-	 * @return utf_ken_all.zipのダウンロードURL
+	 * システムプロパティーにjp.try0.zipcode.csv.encodingが指定されている場合、そちらを優先します。
+	 *
+	 * @return CSVファイルの文字コード
 	 */
 	public String getCSVEncoding() {
 		return getOr("csv.encoding", CSV_ENCODING);
@@ -56,9 +56,9 @@ public class ZipcodeCSVProperties {
 
 	/**
 	 * 一時ディレクトリーから参照する期間（{@link #CSV_CACHE_DAYS}）を取得します。<br>
-	 * 環境変数にjp.try0.zipcode.csv.cache.daysが指定されている場合、そちらを優先します。
-	 * 
-	 * @return utf_ken_all.zipのダウンロードURL
+	 * システムプロパティーにjp.try0.zipcode.csv.cache_daysが指定されている場合、そちらを優先します。
+	 *
+	 * @return 参照する日数
 	 */
 	public int getCacheDays() {
 		return Integer.valueOf(getOr("csv.cache_days", CSV_CACHE_DAYS));

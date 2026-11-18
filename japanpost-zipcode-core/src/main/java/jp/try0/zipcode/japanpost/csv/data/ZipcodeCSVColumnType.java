@@ -143,12 +143,12 @@ public enum ZipcodeCSVColumnType {
 	COL_9_HAS_MULTI_ZIPCODE_AREA("一町域が二以上の郵便番号で表される場合の表示 ", "（注3） （「1」は該当、「0」は該当せず）") {
 		@Override
 		void assign(ZipcodeCSVRow row, CSVRecord csvRecord) {
-			row.setHasMultiZipcodeArea(Integer.valueOf(getValue(csvRecord)));
+			row.setHasMultiZipcodeArea(Integer.parseInt(getValue(csvRecord)));
 		}
 
 		@Override
 		void assign(ZipcodeCSVRow row, String value) {
-			row.setHasMultiZipcodeArea(Integer.valueOf(value));
+			row.setHasMultiZipcodeArea(Integer.parseInt(value));
 		}
 	},
 	/**
@@ -157,12 +157,12 @@ public enum ZipcodeCSVColumnType {
 	COL_10_IS_PER_KOAZA("小字毎に番地が起番されている町域の表示", " （注4） （「1」は該当、「0」は該当せず）") {
 		@Override
 		void assign(ZipcodeCSVRow row, CSVRecord csvRecord) {
-			row.setIsPerKoaza(Integer.valueOf(getValue(csvRecord)));
+			row.setIsPerKoaza(Integer.parseInt(getValue(csvRecord)));
 		}
 
 		@Override
 		void assign(ZipcodeCSVRow row, String value) {
-			row.setIsPerKoaza(Integer.valueOf(value));
+			row.setIsPerKoaza(Integer.parseInt(value));
 		}
 	},
 	/**
@@ -171,12 +171,12 @@ public enum ZipcodeCSVColumnType {
 	COL_11_HAS_CHOUME("丁目を有する町域の場合の表示", " （「1」は該当、「0」は該当せず）") {
 		@Override
 		void assign(ZipcodeCSVRow row, CSVRecord csvRecord) {
-			row.setHasChoume(Integer.valueOf(getValue(csvRecord)));
+			row.setHasChoume(Integer.parseInt(getValue(csvRecord)));
 		}
 
 		@Override
 		void assign(ZipcodeCSVRow row, String value) {
-			row.setHasChoume(Integer.valueOf(value));
+			row.setHasChoume(Integer.parseInt(value));
 		}
 	},
 	/**
@@ -185,12 +185,12 @@ public enum ZipcodeCSVColumnType {
 	COL_12_HAS_MULTI_AREA_ZIPCODE("一つの郵便番号で二以上の町域を表す場合の表示", " （注5） （「1」は該当、「0」は該当せず）") {
 		@Override
 		void assign(ZipcodeCSVRow row, CSVRecord csvRecord) {
-			row.setHasMultiAreaZipcode(Integer.valueOf(getValue(csvRecord)));
+			row.setHasMultiAreaZipcode(Integer.parseInt(getValue(csvRecord)));
 		}
 
 		@Override
 		void assign(ZipcodeCSVRow row, String value) {
-			row.setHasMultiAreaZipcode(Integer.valueOf(value));
+			row.setHasMultiAreaZipcode(Integer.parseInt(value));
 		}
 	},
 	/**
@@ -199,12 +199,12 @@ public enum ZipcodeCSVColumnType {
 	COL_13_UPDATE_STATE("更新の表示", "（注6）（「0」は変更なし、「1」は変更あり、「2」廃止（廃止データのみ使用））") {
 		@Override
 		void assign(ZipcodeCSVRow row, CSVRecord csvRecord) {
-			row.setUpdateState(Integer.valueOf(getValue(csvRecord)));
+			row.setUpdateState(Integer.parseInt(getValue(csvRecord)));
 		}
 
 		@Override
 		void assign(ZipcodeCSVRow row, String value) {
-			row.setUpdateState(Integer.valueOf(value));
+			row.setUpdateState(Integer.parseInt(value));
 		}
 	},
 	/**
@@ -215,12 +215,12 @@ public enum ZipcodeCSVColumnType {
 			"（「0」は変更なし、「1」市政・区政・町政・分区・政令指定都市施行、「2」住居表示の実施、「3」区画整理、「4」郵便区調整等、「5」訂正、「6」廃止（廃止データのみ使用））") {
 		@Override
 		void assign(ZipcodeCSVRow row, CSVRecord csvRecord) {
-			row.setUpdateReason(Integer.valueOf(getValue(csvRecord)));
+			row.setUpdateReason(Integer.parseInt(getValue(csvRecord)));
 		}
 
 		@Override
 		void assign(ZipcodeCSVRow row, String value) {
-			row.setUpdateReason(Integer.valueOf(value));
+			row.setUpdateReason(Integer.parseInt(value));
 		}
 	},
 
@@ -277,7 +277,7 @@ public enum ZipcodeCSVColumnType {
 		try {
 			assign(row, csvRecord);
 		} catch (Exception e) {
-			throw new IllegalArgumentException(name() + "　データが正しくない可能性があります.");
+			throw new IllegalArgumentException(name() + "　データが正しくない可能性があります.", e);
 		}
 	}
 
@@ -291,7 +291,7 @@ public enum ZipcodeCSVColumnType {
 		try {
 			assign(row, value);
 		} catch (Exception e) {
-			throw new IllegalArgumentException(name() + "　データが正しくない可能性があります.");
+			throw new IllegalArgumentException(name() + "　データが正しくない可能性があります.", e);
 		}
 	}
 }

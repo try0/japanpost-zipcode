@@ -90,14 +90,21 @@ public class ZipcodeCSVDownloader {
 	 * @return
 	 */
 	public boolean existsDownloadUrl() {
+		HttpURLConnection conn = null;
 		try {
-			HttpURLConnection conn = (HttpURLConnection) new URL(ZipcodeCSVProperties.get().getDownloadUrl())
-					.openConnection();
+			var props = ZipcodeCSVProperties.get();
+			conn = (HttpURLConnection) new URL(props.getDownloadUrl()).openConnection();
 			conn.setInstanceFollowRedirects(true);
+			conn.setConnectTimeout(props.getConnectionTimeout());
+			conn.setReadTimeout(props.getReadTimeout());
 			conn.setRequestMethod("HEAD");
 			return (conn.getResponseCode() == HttpURLConnection.HTTP_OK);
 		} catch (Exception ignore) {
 			return false;
+		} finally {
+			if (conn != null) {
+				conn.disconnect();
+			}
 		}
 	}
 

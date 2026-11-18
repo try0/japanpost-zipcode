@@ -13,15 +13,20 @@ import org.apache.commons.csv.CSVRecord;
 public class ZipcodeCSVRow implements Serializable {
 
 	/**
-	 * 
+	 * 列定義（{@link ZipcodeCSVColumnType#values()}は呼び出しごとに配列を複製するため保持しておく）
+	 */
+	private static final ZipcodeCSVColumnType[] COLUMNS = ZipcodeCSVColumnType.values();
+
+	/**
+	 *
 	 * @param csvRecord
 	 * @return
 	 */
 	public static ZipcodeCSVRow fromCSVRecord(CSVRecord csvRecord) {
 		ZipcodeCSVRow row = new ZipcodeCSVRow();
 		row.rowNumber = csvRecord.getRecordNumber();
-		for (ZipcodeCSVColumnType col : ZipcodeCSVColumnType.values()) {
-			col.assign(row, csvRecord);
+		for (ZipcodeCSVColumnType col : COLUMNS) {
+			col.assignColumnValue(row, csvRecord);
 		}
 		return row;
 	}

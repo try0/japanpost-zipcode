@@ -8,8 +8,7 @@ import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.stream.Stream;
 
 import jp.try0.zipcode.japanpost.csv.data.ZipcodeCSVRow;
 import jp.try0.zipcode.japanpost.csv.download.ZipcodeCSVDownloader;
@@ -17,9 +16,10 @@ import jp.try0.zipcode.japanpost.csv.parser.ZipcodeCSVParser;
 import jp.try0.zipcode.japanpost.util.ZipcodeFiles;
 
 /**
- * utf_ken_all.zip 郵便番号データ（1レコード1行、UTF-8形式）のユーティリティー
+ * utf_ken_all.zip 郵便番号データ（1レコード1行、UTF-8形式）のユーティリティー<br>
+ * 行データの読み込み方法は{@link ZipcodeCSVRowSource}を参照してください。
  */
-public class ZipcodeCSV implements Serializable {
+public class ZipcodeCSV implements ZipcodeCSVRowSource, Serializable {
 
 	/**
 	 * utf_ken_all.csvを取得します。<br>
@@ -69,37 +69,17 @@ public class ZipcodeCSV implements Serializable {
 	}
 
 	/**
-	 * ローカルのutf_ken_all.csvを削除します。<br>
-	 * 
+	 * 保持しているCSVファイルを削除します。<br>
+	 *
 	 * @throws IOException
 	 */
 	public void delete() throws IOException {
-		if (csvFile.exists()) {
-			Files.delete(ZipcodeFiles.CSV_PATH);
-		}
+		Files.deleteIfExists(csvFile.toPath());
 	}
 
-	/**
-	 * CSV行データを取得します。
-	 * 
-	 * @return 行Iterable
-	 * @throws IOException
-	 */
-	public Iterable<ZipcodeCSVRow> getRows() throws IOException {
-		ZipcodeCSVParser parser = new ZipcodeCSVParser(csvFile);
-		return parser.parse();
-	}
-
-	/**
-	 * CSV行データを取得します。
-	 * 
-	 * @return 行リスト
-	 * @throws IOException
-	 */
-	public List<ZipcodeCSVRow> getRowsAsList() throws IOException {
-		List<ZipcodeCSVRow> rows = new ArrayList<>();
-		getRows().forEach(rows::add);
-		return rows;
+	@Override
+	public Stream<ZipcodeCSVRow> openRowStream() throws IOException {
+		return new ZipcodeCSVParser(csvFile).openRowStream();
 	}
 
 	/**

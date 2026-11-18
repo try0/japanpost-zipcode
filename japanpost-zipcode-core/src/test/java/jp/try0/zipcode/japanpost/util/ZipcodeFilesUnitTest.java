@@ -2,6 +2,7 @@ package jp.try0.zipcode.japanpost.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -9,6 +10,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -52,5 +54,37 @@ public final class ZipcodeFilesUnitTest {
 		File csv = Files.writeString(tempDir.resolve("sample.csv"), "a,b,c").toFile();
 
 		assertEquals(csv, ZipcodeFiles.unzipIfNeeded(csv));
+	}
+
+	@Test
+	public void unzipRejectsEntryOutsideWorkDirectory() throws IOException {
+		String entryName = "../zipslip-" + UUID.randomUUID() + ".txt";
+		Path escaped = ZipcodeFiles.WORK_PATH.resolve(entryName).normalize();
+		Path zip = tempDir.resolve("zipslip.zip");
+		try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(zip))) {
+			zos.putNextEntry(new ZipEntry(entryName));
+			zos.write("evil".getBytes(StandardCharsets.UTF_8));
+			zos.closeEntry();
+		}
+
+		try {
+			assertThrows(IOException.class, () -> ZipcodeFiles.unzip(zip.toFile()));
+			assertFalse(Files.exists(escaped), "作業ディレクトリーの外へ書き込まれた: " + escaped);
+		} finally {
+			Files.deleteIfExists(escaped);
+		}
+	}
+
+	/**
+	 * 実際の一時ディレクトリー（java.io.tmpdir/jp.try0.zipcode）を削除します。
+	 */
+	@Test
+	public void cleanDeletesNonEmptyTmpDirectory() throws IOException {
+		Files.createDirectories(ZipcodeFiles.WORK_PATH);
+		Files.writeString(ZipcodeFiles.WORK_PATH.resolve("dummy.txt"), "dummy");
+
+		ZipcodeFiles.clean();
+
+		assertFalse(Files.exists(ZipcodeFiles.TMP_DIR_PATH));
 	}
 }

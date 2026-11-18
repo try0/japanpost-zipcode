@@ -9,6 +9,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
@@ -39,6 +43,7 @@ public final class ZipcodeFiles {
 	public static final File unzip(File file) throws java.io.IOException {
 
 		WORK_PATH.toFile().mkdirs();
+		Path workDir = WORK_PATH.toAbsolutePath().normalize();
 
 		try (FileInputStream fis = new FileInputStream(file);
 				ZipInputStream zis = new ZipInputStream(new BufferedInputStream(fis));) {
@@ -46,7 +51,12 @@ public final class ZipcodeFiles {
 			while ((entry = zis.getNextEntry()) != null) {
 				int count;
 				byte data[] = new byte[BUFFER];
-				File entryFile = Path.of(WORK_PATH.toString(), entry.getName()).toFile();
+				Path entryPath = workDir.resolve(entry.getName()).normalize();
+				if (!entryPath.startsWith(workDir)) {
+					// Zip Slip対策
+					throw new IOException("作業ディレクトリー外を指すZipエントリーです: " + entry.getName());
+				}
+				File entryFile = entryPath.toFile();
 				if (entry.isDirectory()) {
 					entryFile.mkdir();
 					continue;
@@ -115,9 +125,17 @@ public final class ZipcodeFiles {
 	 * @throws IOException
 	 */
 	public static void clean() throws IOException {
-		File libTmpDir = ZipcodeFiles.TMP_DIR_PATH.toFile();
-		if (libTmpDir.exists()) {
-			Files.delete(ZipcodeFiles.TMP_DIR_PATH);
+		if (!Files.exists(TMP_DIR_PATH)) {
+			return;
+		}
+
+		// 中身から順に削除する
+		List<Path> paths;
+		try (Stream<Path> walk = Files.walk(TMP_DIR_PATH)) {
+			paths = walk.sorted(Comparator.reverseOrder()).collect(Collectors.toList());
+		}
+		for (Path path : paths) {
+			Files.delete(path);
 		}
 	}
 
