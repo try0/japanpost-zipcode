@@ -8,11 +8,16 @@ import java.nio.file.Files;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import jp.try0.zipcode.japanpost.util.ZipcodeFiles;
 
+/**
+ * 日本郵便のサーバーからダウンロードするため、"network"タグを付与しています。
+ */
+@Tag("network")
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class ZipcodeCSVTest {
 
